@@ -1,92 +1,76 @@
 
+body {
+  background: rgb(22,22,22);
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  top:  0;
+}
 
-
-		.container2 {
-			display: flex;
-			justify-content: center;				
-		}
-
-  
-        .first {
-            width: 300px;
-            display: inline-block;
-            text-align: left;
-
-        }
-  
-        .second {
-            width: 300px;
-            display: inline-block;
-            text-align: left;
-
-        }
-  
-
-        @media screen and (max-width: 500px) {
-  
-            .first,
-            .second {
-                width: 70%;
-            }
-        }
+#logo{ 
+  position:fixed; 
+  top:0; 
+  left:0; 
+  margin:  20px;
+} 
 
 
 
-a    {color: black;
-		font-size: 20px;}
+.form__group {
+  position: relative;
+  padding: 15px 0 0;
+  margin-top: 10px;
+  width: 50%;
+  max-width: 300px;
+  border-radius: 25px;
+}
 
+.form__field {
+  font-family: Arial, sans-serif;
+  width: 90%;
+  border: 0;
+  outline: 0;
+  font-size: 1 rem;
+  color: #ffffff;
+  padding: 10px 0;
+  background: #111111;
+  transition: border-color 0s;
+  border-radius: 5px;
+  text-align: center; 
 
-.team_div {
-	width:  300px;
-	text-align: left;
-	vertical-align: left;
-	max-width: 300px;
 
 }
 
-
-#container > div
-{
-    display: inline-block;
-    border: solid 0px #000;
-}
-#container
-{
-    border: solid 0px #ff0000;
-    text-align: center;
-    margin: 0px auto;
-    width: 40%;
-    max-width: 80%;
-}   
-
-
-.marquee {
-    width: 100%;
-    height: 300px;
-    overflow: hidden;
+.form__label {
+  position: absolute;
+  top: 0;
+  display: block;
+  transition: 0.2s;
+  font-size: 1rem;
+  color: #080808;
 }
 
-.marquee-content {
-    display: flex;
-    list-style: none;
-    animation: scrolling 120s linear infinite;
+
+.button {
+  background-color: #111111; /* Green */
+  border: none;
+  color: white;
+  padding: 12px 25px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 10px;
 }
 
-.marquee-item {
-    height: 300px;
-    width: 300px;
-    flex-shrink: 0;
-}
 
-.marquee-image {
-    height: 100%;
-    width: 100%;
-}
 
-@keyframes scrolling {
-    0% { transform: translateX(0); }
-    100% { transform: translatex(-7000px); }
-}
+
+a    {color: white;
+  font-size: 20px;}
+
+
 
 
 /* Tablet Landscape */
@@ -97,18 +81,13 @@ a    {color: black;
     table { max-width: 95%; }
     .slider {max-width: 9500%;}
     .info2 {
-	width: 90%;
-}
-.test1 {
-	width: 400%;
-	height: 300px;
-	float: left;
+  width: 90%;}
+  video {
+    max-width: 90%;
+  border-radius: 5px;
 }
 }
 
-.info2 {
-	width: 70%;
-}
 
 /* Tabled Portrait */
 @media screen and (max-width: 768px) {
@@ -117,134 +96,11 @@ a    {color: black;
     .img2 { max-width: 95%; }
     table { max-width: 95%; }
     .info2 {
-	width: 90%;
-	}
-
-
-
-#container > div
-{
-    border: solid 0px #000;
-}
-#container
-{
-    border: solid 0px #ff0000;
-    margin: 0px auto;
-    width: 80%;
-    max-width: 80%;
-}   
-
-
-
-
-.img3 { max-width: 200px;
-		width: 200px; }
-
-.test1 {
-	width: 400%;
-	height: 300px;
-	float: left;
-}
-}
-
-.info2 {
-	width: 80%;
+  width: 90%;
+  }
+  video {
+    max-width: 90%;
+  border-radius: 5px;}
 }
 
 
-.img2 { max-width: 95%; }
-table { max-width: 95%; }
-
-body {
-	background: rgb(00,00,00);
-	color: #000000;
-	font-family: Arial, sans-serif;
-	margin: 0;
-	padding: 0;
-	top:  0;
-}
-
- 
-
-
-.container {
-	margin: 0 auto;
-	width: 800px;
-}
-
-.test1 {
-	margin: 0 auto;
-	overflow:scroll;
-	overflow-x: scroll;
-	overflow-y: hidden;
-	top: 0;
-	position:  fixed;
-}
-
-.inline-block {
-   display: inline-block;
-   position:  fixed;
-   top:  0px;
-   z-index: 999;
-   top:  0;
-}
-
-.marqueeTwo {
-   display: inline-block;
-   position:  fixed;
-   top:  0px;
-   left: 0px;
-   z-index: 999;
-}
-
-
-.img1 {
-	float: left;
-	object-fit: cover;
-	white-space: nowrap;
-}
-
-
-header {
-	border-bottom: 2px solid #3f4f5f;
-	padding: 6.25em 0 3.95em;
-	text-align: center;
-	width: 100%;
-}
-
-.info {
-	width: 70%;
-}
-
-.info2 {
-	width: 60%;
-}
-
-header h1 {
-	margin: 0 0 10px;
-}
-
-.example {
-	padding: 3em 0;
-}
-
-h2 {
-	text-align: center;
-}
-
-pre {
-	background: #000000;
-	color: #000;
-	font-family: Consolas, Monaco, 'Andale Mono', monospace;
-	line-height: 26px;
-	padding: 1em;
-	text-shadow: 0 1px white;
-	white-space: pre-wrap;
-}
-
-pre span.string {
-	color: #690;
-}
-pre span.number {
-	color: #905;
-}
