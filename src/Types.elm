@@ -1,9 +1,9 @@
-module Types exposing (Flags, Model, Msg(..))
+module Types exposing (Flags, Model, Msg(..), State)
 
 
 type alias Model =
     { isMobile : Bool
-    , wallet : Maybe String
+    , wallet : Maybe State
     }
 
 
@@ -18,6 +18,12 @@ type alias Screen =
     }
 
 
+type alias State =
+    { address : String
+    , count : Int
+    }
+
+
 type Msg
     = Connect
-    | ConnectResponse (Maybe String)
+    | ConnectResponse (Maybe State)

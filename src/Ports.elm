@@ -1,5 +1,9 @@
 port module Ports exposing (connect, connectResponse, disconnect, log)
 
+import Types
+
+
+
 -- OUT
 
 
@@ -16,4 +20,4 @@ port disconnect : () -> Cmd msg
 -- IN
 
 
-port connectResponse : (Maybe String -> msg) -> Sub msg
+port connectResponse : (Maybe Types.State -> msg) -> Sub msg

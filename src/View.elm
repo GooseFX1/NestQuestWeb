@@ -7,7 +7,7 @@ import Element.Input as Input
 import Helpers.View exposing (cappedWidth, when, whenAttr)
 import Html exposing (Html)
 import Maybe.Extra exposing (unwrap)
-import Types exposing (Model, Msg)
+import Types exposing (Model, Msg, State)
 
 
 view : Model -> Html Msg
@@ -46,7 +46,7 @@ view model =
                     , label = text "Connect wallet"
                     }
                 )
-                formatAddress
+                viewState
         ]
             |> column [ width fill, spacing 15 ]
       ]
@@ -273,6 +273,19 @@ fade =
     Element.alpha 0.7
 
 
+viewState : State -> Element msg
+viewState state =
+    [ formatAddress state.address
+    , paragraph [ Font.color gold, Font.italic, Font.center ]
+        [ "You have "
+            ++ String.fromInt state.count
+            ++ " NestQuest NFT(s)."
+            |> text
+        ]
+    ]
+        |> column [ spacing 10, centerX ]
+
+
 formatAddress : String -> Element msg
 formatAddress addr =
     (String.left 6 addr
@@ -280,4 +293,4 @@ formatAddress addr =
         ++ String.right 6 addr
     )
         |> text
-        |> el [ Font.color gold, centerX ]
+        |> el [ Font.color gold, centerX, Font.bold ]
