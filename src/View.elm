@@ -3,15 +3,33 @@ module View exposing (view)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
-import Helpers.View exposing (cappedWidth)
+import Helpers.View exposing (cappedWidth, when, whenAttr)
 import Html exposing (Html)
 import Types exposing (Model, Msg)
 
 
 view : Model -> Html Msg
-view _ =
-    [ [ image [ centerX, width <| px 500 ] { src = "/logo.png", description = "" }
-      , image [ centerX, width <| px 500 ] { src = "/slogan.png", description = "" }
+view model =
+    [ [ image
+            [ centerX
+            , width <|
+                if model.isMobile then
+                    fill
+
+                else
+                    px 500
+            ]
+            { src = "/logo.png", description = "" }
+      , image
+            [ centerX
+            , width <|
+                if model.isMobile then
+                    fill
+
+                else
+                    px 500
+            ]
+            { src = "/slogan.png", description = "" }
       ]
         |> column
             [ width fill
@@ -20,32 +38,62 @@ view _ =
     , image
         [ cappedWidth 1200
         , centerX
-        , [ box body1 True
+        , [ box body1 True model.isMobile
           , [ lineImg 1
-            , box body2 False
-                |> bump
+                |> when (not model.isMobile)
+            , box body2 False model.isMobile
+                |> (if model.isMobile then
+                        identity
+
+                    else
+                        bump
+                   )
             ]
                 |> row [ spacing 20, alignRight ]
-          , [ box body3 True
-                |> bump
+          , [ box body3 True model.isMobile
+                |> (if model.isMobile then
+                        identity
+
+                    else
+                        bump
+                   )
             , lineImg 2
+                |> when (not model.isMobile)
             ]
                 |> row [ spacing 20, alignLeft ]
           , [ lineImg 3
-            , box body4 False
-                |> bump
+                |> when (not model.isMobile)
+            , box body4 False model.isMobile
+                |> (if model.isMobile then
+                        identity
+
+                    else
+                        bump
+                   )
             ]
                 |> row [ spacing 20, alignRight ]
-          , [ box body5 True
-                |> bump
+          , [ box body5 True model.isMobile
+                |> (if model.isMobile then
+                        identity
+
+                    else
+                        bump
+                   )
             , lineImg 4
+                |> when (not model.isMobile)
             ]
                 |> row [ spacing 20, alignLeft ]
           ]
             |> column
                 [ cappedWidth 900
                 , centerX
-                , moveDown 600
+                , moveDown
+                    (if model.isMobile then
+                        250
+
+                     else
+                        600
+                    )
                 , spacing 15
                 ]
             |> inFront
@@ -102,8 +150,8 @@ blackChancery =
         ]
 
 
-box : ( Int, Int, String ) -> Bool -> Element msg
-box ( quarter, year, body ) left =
+box : ( Int, Int, String ) -> Bool -> Bool -> Element msg
+box ( quarter, year, body ) left isMobile =
     let
         h =
             300
@@ -133,8 +181,14 @@ box ( quarter, year, body ) left =
 
               else
                 alignRight
-            , width <| px <| round (h * 1.8)
-            , height <| px h
+            , width <|
+                if isMobile then
+                    fill
+
+                else
+                    px <| round (h * 1.8)
+            , height (px h)
+                |> whenAttr (not isMobile)
             , padding 40
             , spacing 30
             ]

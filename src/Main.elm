@@ -17,8 +17,10 @@ main =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init _ =
-    ( {}, Cmd.none )
+init model =
+    ( { isMobile = model.screen.width < 688 }
+    , Cmd.none
+    )
 
 
 subscriptions : Model -> Sub Msg
