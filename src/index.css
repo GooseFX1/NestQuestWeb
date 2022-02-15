@@ -1,0 +1,13 @@
+@font-face {
+  font-family: "Black Chancery";
+  /*font-style: normal;*/
+  /*font-weight: 400;*/
+  src: url("./fonts/black-chancery.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Merienda Bold";
+  /*font-style: bold;*/
+  /*font-weight: 400;*/
+  src: url("./fonts/merienda-bold.ttf") format("truetype");
+}
