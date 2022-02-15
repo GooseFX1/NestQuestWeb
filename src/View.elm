@@ -3,8 +3,10 @@ module View exposing (view)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
+import Element.Input as Input
 import Helpers.View exposing (cappedWidth, when, whenAttr)
 import Html exposing (Html)
+import Maybe.Extra exposing (unwrap)
 import Types exposing (Model, Msg)
 
 
@@ -20,7 +22,7 @@ view model =
                     px 500
             ]
             { src = "/logo.png", description = "" }
-      , image
+      , [ image
             [ centerX
             , width <|
                 if model.isMobile then
@@ -30,6 +32,23 @@ view model =
                     px 500
             ]
             { src = "/slogan.png", description = "" }
+        , model.wallet
+            |> unwrap
+                (Input.button
+                    [ Font.underline
+                    , Font.color gold
+                    , blackChancery
+                    , Font.size 30
+                    , centerX
+                    , hover
+                    ]
+                    { onPress = Just Types.Connect
+                    , label = text "Connect wallet"
+                    }
+                )
+                formatAddress
+        ]
+            |> column [ width fill, spacing 15 ]
       ]
         |> column
             [ width fill
@@ -242,3 +261,23 @@ bump elem =
     , elem
     ]
         |> column []
+
+
+hover : Attribute msg
+hover =
+    Element.mouseOver [ fade ]
+
+
+fade : Element.Attr a b
+fade =
+    Element.alpha 0.7
+
+
+formatAddress : String -> Element msg
+formatAddress addr =
+    (String.left 6 addr
+        ++ "..."
+        ++ String.right 6 addr
+    )
+        |> text
+        |> el [ Font.color gold, centerX ]

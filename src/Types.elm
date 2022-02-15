@@ -3,6 +3,7 @@ module Types exposing (Flags, Model, Msg(..))
 
 type alias Model =
     { isMobile : Bool
+    , wallet : Maybe String
     }
 
 
@@ -18,4 +19,5 @@ type alias Screen =
 
 
 type Msg
-    = Msg
+    = Connect
+    | ConnectResponse (Maybe String)
