@@ -12,6 +12,30 @@ import Types exposing (Model, Msg, State)
 
 view : Model -> Html Msg
 view model =
+    (if model.isMobile then
+        viewMobile model
+
+     else
+        viewDesktop model
+    )
+        |> Element.layoutWith
+            { options =
+                [ Element.focusStyle
+                    { borderColor = Nothing
+                    , backgroundColor = Nothing
+                    , shadow = Nothing
+                    }
+                ]
+            }
+            [ width fill
+            , height fill
+            , Background.color bg
+            , scrollbarY
+            ]
+
+
+viewMobile : Model -> Element Msg
+viewMobile model =
     [ [ image
             [ centerX
             , width <|
@@ -32,21 +56,6 @@ view model =
                     px 500
             ]
             { src = "/slogan.png", description = "" }
-        , model.wallet
-            |> unwrap
-                (Input.button
-                    [ Font.underline
-                    , Font.color gold
-                    , blackChancery
-                    , Font.size 30
-                    , centerX
-                    , hover
-                    ]
-                    { onPress = Just Types.Connect
-                    , label = text "Connect wallet"
-                    }
-                )
-                viewState
         ]
             |> column [ width fill, spacing 15 ]
       ]
@@ -55,88 +64,187 @@ view model =
             , padding 50
             ]
     , image
-        [ cappedWidth 1200
+        [ width <| px 390
+        , height <| px 1732
         , centerX
-        , [ box body1 True model.isMobile
+        , [ boxM body1 True
           , [ lineImg 1
-                |> when (not model.isMobile)
-            , box body2 False model.isMobile
-                |> (if model.isMobile then
-                        identity
-
-                    else
-                        bump
-                   )
+            , boxM body2 False
+                |> bump
             ]
                 |> row [ spacing 20, alignRight ]
-          , [ box body3 True model.isMobile
-                |> (if model.isMobile then
-                        identity
-
-                    else
-                        bump
-                   )
+          , [ boxM body3 True
+                |> bump
             , lineImg 2
-                |> when (not model.isMobile)
             ]
                 |> row [ spacing 20, alignLeft ]
           , [ lineImg 3
-                |> when (not model.isMobile)
-            , box body4 False model.isMobile
-                |> (if model.isMobile then
-                        identity
-
-                    else
-                        bump
-                   )
+            , boxM body4 False
+                |> bump
             ]
                 |> row [ spacing 20, alignRight ]
-          , [ box body5 True model.isMobile
-                |> (if model.isMobile then
-                        identity
-
-                    else
-                        bump
-                   )
+          , [ boxM body5 True
+                |> bump
             , lineImg 4
-                |> when (not model.isMobile)
             ]
                 |> row [ spacing 20, alignLeft ]
           ]
             |> column
-                [ cappedWidth 900
-                , centerX
-                , moveDown
-                    (if model.isMobile then
-                        250
-
-                     else
-                        600
-                    )
+                [ width fill
+                , paddingXY 20 0
+                , moveDown 260
                 , spacing 15
                 ]
             |> inFront
         ]
-        { src = "/island.png", description = "" }
+        { src = "/world-mobile.png", description = "" }
     ]
         |> column
             [ spacing 20
             , width fill
             , height fill
             ]
-        |> Element.layoutWith
-            { options =
-                [ Element.focusStyle
-                    { borderColor = Nothing
-                    , backgroundColor = Nothing
-                    , shadow = Nothing
-                    }
-                ]
-            }
+
+
+viewDesktop : Model -> Element Msg
+viewDesktop model =
+    [ [ image
+            [ centerX
+            , width <|
+                if model.isMobile then
+                    fill
+
+                else
+                    px 500
+            ]
+            { src = "/logo.png", description = "" }
+      , [ image
+            [ centerX
+            , width <|
+                if model.isMobile then
+                    fill
+
+                else
+                    px 500
+            ]
+            { src = "/slogan.png", description = "" }
+
+        --, model.wallet
+        --|> unwrap
+        --(Input.button
+        --[ Font.underline
+        --, Font.color gold
+        --, blackChancery
+        --, Font.size 30
+        --, centerX
+        --, hover
+        --]
+        --{ onPress = Just Types.Connect
+        --, label = text "Connect wallet"
+        --}
+        --)
+        --viewState
+        ]
+            |> column [ width fill, spacing 15 ]
+      ]
+        |> column
             [ width fill
+            , padding 50
+            ]
+    , image
+        [ centerX
+        , width <| px 1401
+        , height <| px 3155
+        , image
+            [ centerX
+            , moveDown 1048
+            , width <| px 1199
+            , height <| px 1641
+            , [ image [ height <| px 69, width <| px 234, centerX ]
+                    { src = "/roadmap.png"
+                    , description = ""
+                    }
+              , [ viewBox body1 False
+                    |> el
+                        [ width <| px 424
+                        , alignLeft
+                        , image
+                            [ height <| px 176
+                            , width <| px 587
+                            , moveRight 200
+                            , moveUp 50
+                            ]
+                            { src = "/lines/1.png"
+                            , description = ""
+                            }
+                            |> below
+                        ]
+                , viewBox body2 False
+                    |> el
+                        [ width <| px 424
+                        , alignRight
+                        , image
+                            [ height <| px 185
+                            , width <| px 550
+                            , moveLeft 320
+                            , moveUp 75
+                            ]
+                            { src = "/lines/2.png"
+                            , description = ""
+                            }
+                            |> below
+                        ]
+                , viewBox body3 False
+                    |> el
+                        [ width <| px 424
+                        , alignLeft
+                        , image
+                            [ height <| px 152
+                            , width <| px 491
+                            , moveRight 250
+                            , moveUp 60
+                            ]
+                            { src = "/lines/3.png"
+                            , description = ""
+                            }
+                            |> below
+                        ]
+                , viewBox body4 False
+                    |> el
+                        [ width <| px 424
+                        , alignRight
+                        , image
+                            [ height <| px 127
+                            , width <| px 478
+                            , moveLeft 300
+                            , moveUp 50
+                            ]
+                            { src = "/lines/4.png"
+                            , description = ""
+                            }
+                            |> below
+                        ]
+                , viewBox body5 False
+                    |> el [ width <| px 424, alignLeft ]
+                ]
+                    |> column
+                        [ spacing 20
+                        , width fill
+                        , paddingXY 100 50
+                        ]
+              ]
+                |> column [ width fill, height fill, paddingXY 0 150 ]
+                |> inFront
+            ]
+            { src = "/parchment-large.png", description = "" }
+            |> inFront
+        ]
+        { src = "/world-desktop.png", description = "" }
+    ]
+        |> column
+            [ spacing 20
+            , width fill
             , height fill
-            , Background.color bg
-            , scrollbarY
             ]
 
 
@@ -169,13 +277,50 @@ blackChancery =
         ]
 
 
-box : ( Int, Int, String ) -> Bool -> Bool -> Element msg
-box ( quarter, year, body ) left isMobile =
+boxM : ( Int, Int, String ) -> Bool -> Element msg
+boxM content left =
+    image
+        [ height <| px 204
+        , width <| px 278
+        , if left then
+            alignLeft
+
+          else
+            alignRight
+        , viewBox content True
+            |> inFront
+        ]
+        { src =
+            "/parchment.png"
+        , description = ""
+        }
+
+
+viewBox : ( Int, Int, String ) -> Bool -> Element msg
+viewBox ( quarter, year, body ) mobile =
     let
-        h =
-            300
+        font =
+            if mobile then
+                13
+
+            else
+                20
+
+        ( sepW, sepH ) =
+            if mobile then
+                ( 135, 18 )
+
+            else
+                ( 259, 35 )
+
+        ( headW, headH ) =
+            if mobile then
+                ( 83, 26 )
+
+            else
+                ( 129, 50 )
     in
-    [ image [ centerX, width <| px 120 ]
+    [ image [ centerX, width <| px headW, height <| px headH ]
         { description = ""
         , src =
             "/headers/q"
@@ -184,38 +329,22 @@ box ( quarter, year, body ) left isMobile =
                 ++ String.fromInt year
                 ++ ".png"
         }
-    , [ hairline
-      , "🥚"
-            |> text
-            |> el [ Font.size 30 ]
-      , hairline
-      ]
-        |> row [ spacing 10, centerX, width <| px 300 ]
-    , paragraph [ Font.center, meriendaBold, Font.color gold ] [ text body ]
+    , image [ width <| px sepW, height <| px sepH, centerX ]
+        { src = "/sep.png"
+        , description = ""
+        }
+    , paragraph
+        [ Font.center
+        , meriendaBold
+        , Font.color gold
+        , Font.size font
+        ]
+        [ text body ]
     ]
         |> column
-            [ Background.image "/parchment.png"
-            , if left then
-                alignLeft
-
-              else
-                alignRight
-            , width <|
-                if isMobile then
-                    fill
-
-                else
-                    px <| round (h * 1.8)
-            , height (px h)
-                |> whenAttr (not isMobile)
-            , padding 40
-            , spacing 30
+            [ padding 30
+            , spacing 10
             ]
-
-
-hairline : Element msg
-hairline =
-    el [ height <| px 3, width fill, Background.color black ] none
 
 
 body1 : ( Int, Int, String )
@@ -240,8 +369,7 @@ body4 =
 
 body5 : ( Int, Int, String )
 body5 =
-    ( 3
-      --4
+    ( 4
     , 2022
     , "Continued NestQuest metaverse development. Nest Citadel Stage, VR Art Gallery, and more!"
     )
@@ -249,7 +377,7 @@ body5 =
 
 lineImg : Int -> Element msg
 lineImg n =
-    image [ height <| px 200, alignTop ]
+    image [ height <| px 172, width <| px 70, alignTop ]
         { src = "/headers/line" ++ String.fromInt n ++ ".png"
         , description = ""
         }
@@ -257,7 +385,7 @@ lineImg n =
 
 bump : Element msg -> Element msg
 bump elem =
-    [ el [ height <| px 20 ] none
+    [ el [ height <| px 65 ] none
     , elem
     ]
         |> column []
@@ -273,12 +401,15 @@ fade =
     Element.alpha 0.7
 
 
-viewState : State -> Element msg
+viewState : State -> Element Msg
 viewState state =
-    [ formatAddress state.address
+    [ Input.button []
+        { onPress = Just Types.Stake
+        , label = formatAddress state.address
+        }
     , paragraph [ Font.color gold, Font.italic, Font.center ]
         [ "You have "
-            ++ String.fromInt state.count
+            ++ String.fromInt (List.length state.nfts)
             ++ " NestQuest NFT(s)."
             |> text
         ]

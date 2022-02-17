@@ -1,5 +1,6 @@
 module Update exposing (update)
 
+import Maybe.Extra exposing (unwrap)
 import Ports
 import Types exposing (Model, Msg(..))
 
@@ -12,3 +13,11 @@ update msg model =
 
         ConnectResponse val ->
             ( { model | wallet = val }, Cmd.none )
+
+        Stake ->
+            ( model
+            , model.wallet
+                |> Maybe.andThen
+                    (.nfts >> List.head)
+                |> unwrap Cmd.none Ports.stake
+            )

@@ -1,5 +1,6 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 const publicFolder = resolve("./public");
 
@@ -52,6 +53,6 @@ module.exports = (env) => {
         },
       ],
     },
-    plugins: [new webpack.NoEmitOnErrorsPlugin()],
+    plugins: [new NodePolyfillPlugin(), new webpack.NoEmitOnErrorsPlugin()],
   };
 };

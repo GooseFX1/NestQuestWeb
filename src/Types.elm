@@ -20,10 +20,11 @@ type alias Screen =
 
 type alias State =
     { address : String
-    , count : Int
+    , nfts : List String
     }
 
 
 type Msg
     = Connect
     | ConnectResponse (Maybe State)
+    | Stake

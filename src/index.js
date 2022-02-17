@@ -1,5 +1,11 @@
 require("./index.css");
 
+//import {
+//PhantomWalletAdapter,
+//SolflareWalletAdapter,
+//SlopeWalletAdapter,
+//} from "@solana/wallet-adapter-wallets";
+
 const web3 = require("./web3.js");
 const { Elm } = require("./Main.elm");
 
@@ -10,12 +16,25 @@ const app = Elm.Main.init({
   },
 });
 
-const getWallet = () => window.solana || window.solflare || null;
+const getWallet = () => {
+  if (window.Slope) {
+    return new window.Slope();
+  }
+  return window.solana || window.solflare || null;
+};
 
 const fetchState = async (wallet) => ({
   address: wallet.publicKey.toString(),
-  count: await web3.fetchOwned(wallet),
+  nfts: await web3.fetchOwned(wallet),
 });
+
+app.ports.stake.subscribe((mintId) =>
+  (async () => {
+    console.log(mintId);
+  })().catch((e) => {
+    console.error(e);
+  })
+);
 
 app.ports.connect.subscribe(() =>
   (async () => {

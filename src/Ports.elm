@@ -1,4 +1,4 @@
-port module Ports exposing (connect, connectResponse, disconnect, log)
+port module Ports exposing (connect, connectResponse, disconnect, log, stake)
 
 import Types
 
@@ -14,6 +14,9 @@ port connect : () -> Cmd msg
 
 
 port disconnect : () -> Cmd msg
+
+
+port stake : String -> Cmd msg
 
 
 
