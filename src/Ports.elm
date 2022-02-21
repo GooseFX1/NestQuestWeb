@@ -1,10 +1,16 @@
-port module Ports exposing (connect, connectResponse, disconnect, log, stake)
+port module Ports exposing (connect, connectResponse, disconnect, log, playTheme, stake, stopTheme)
 
 import Types
 
 
 
 -- OUT
+
+
+port playTheme : () -> Cmd msg
+
+
+port stopTheme : () -> Cmd msg
 
 
 port log : String -> Cmd msg

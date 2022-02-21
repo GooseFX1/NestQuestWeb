@@ -21,6 +21,7 @@ init : Flags -> ( Model, Cmd Msg )
 init model =
     ( { isMobile = model.screen.width < 688
       , wallet = Nothing
+      , themePlaying = False
       }
     , Cmd.none
     )

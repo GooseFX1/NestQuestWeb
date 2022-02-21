@@ -9,6 +9,9 @@ require("./index.css");
 const web3 = require("./web3.js");
 const { Elm } = require("./Main.elm");
 
+// eslint-disable-next-line fp/no-let
+let theme = null;
+
 const app = Elm.Main.init({
   node: document.getElementById("app"),
   flags: {
@@ -26,6 +29,24 @@ const getWallet = () => {
 const fetchState = async (wallet) => ({
   address: wallet.publicKey.toString(),
   nfts: await web3.fetchOwned(wallet),
+});
+
+app.ports.playTheme.subscribe(() => {
+  if (theme) {
+    return theme.play();
+  }
+
+  const audio = new Audio("/theme.mp3");
+
+  audio.addEventListener("canplay", () => {
+    // eslint-disable-next-line fp/no-mutation
+    theme = audio;
+    audio.play();
+  });
+});
+
+app.ports.stopTheme.subscribe(() => {
+  theme.pause();
 });
 
 app.ports.stake.subscribe((mintId) =>

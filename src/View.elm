@@ -4,10 +4,10 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (cappedWidth, when, whenAttr)
+import Helpers.View exposing (cappedWidth, style, when, whenAttr)
 import Html exposing (Html)
 import Maybe.Extra exposing (unwrap)
-import Types exposing (Model, Msg, State)
+import Types exposing (Model, Msg(..), State)
 
 
 view : Model -> Html Msg
@@ -31,6 +31,8 @@ view model =
             , height fill
             , Background.color bg
             , scrollbarY
+            , playButton model.themePlaying
+                |> inFront
             ]
 
 
@@ -139,7 +141,7 @@ viewDesktop model =
         --, centerX
         --, hover
         --]
-        --{ onPress = Just Types.Connect
+        --{ onPress = Just Connect
         --, label = text "Connect wallet"
         --}
         --)
@@ -161,7 +163,7 @@ viewDesktop model =
             , width <| px 1199
             , height <| px 1641
             , [ image [ height <| px 69, width <| px 234, centerX ]
-                    { src = "/roadmap.png"
+                    { src = "/roadmap.svg"
                     , description = ""
                     }
               , [ viewBox body1 False
@@ -327,10 +329,10 @@ viewBox ( quarter, year, body ) mobile =
                 ++ String.fromInt quarter
                 ++ "-"
                 ++ String.fromInt year
-                ++ ".png"
+                ++ ".svg"
         }
     , image [ width <| px sepW, height <| px sepH, centerX ]
-        { src = "/sep.png"
+        { src = "/seperator.svg"
         , description = ""
         }
     , paragraph
@@ -404,7 +406,7 @@ fade =
 viewState : State -> Element Msg
 viewState state =
     [ Input.button []
-        { onPress = Just Types.Stake
+        { onPress = Just Stake
         , label = formatAddress state.address
         }
     , paragraph [ Font.color gold, Font.italic, Font.center ]
@@ -425,3 +427,34 @@ formatAddress addr =
     )
         |> text
         |> el [ Font.color gold, centerX, Font.bold ]
+
+
+playButton : Bool -> Element Msg
+playButton playing =
+    Input.button
+        [ alignTop
+        , alignRight
+        , paddingEach
+            { left = 30
+            , right =
+                if playing then
+                    60
+
+                else
+                    40
+            , top = 30
+            , bottom = 30
+            }
+        ]
+        { onPress = Just PlayTheme
+        , label =
+            image []
+                { src =
+                    if playing then
+                        "/stop.svg"
+
+                    else
+                        "/play.svg"
+                , description = ""
+                }
+        }

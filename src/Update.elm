@@ -14,6 +14,17 @@ update msg model =
         ConnectResponse val ->
             ( { model | wallet = val }, Cmd.none )
 
+        PlayTheme ->
+            if model.themePlaying then
+                ( { model | themePlaying = False }
+                , Ports.stopTheme ()
+                )
+
+            else
+                ( { model | themePlaying = True }
+                , Ports.playTheme ()
+                )
+
         Stake ->
             ( model
             , model.wallet

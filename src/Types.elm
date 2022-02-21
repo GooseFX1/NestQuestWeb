@@ -4,6 +4,7 @@ module Types exposing (Flags, Model, Msg(..), State)
 type alias Model =
     { isMobile : Bool
     , wallet : Maybe State
+    , themePlaying : Bool
     }
 
 
@@ -28,3 +29,4 @@ type Msg
     = Connect
     | ConnectResponse (Maybe State)
     | Stake
+    | PlayTheme
