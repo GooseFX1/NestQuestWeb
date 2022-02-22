@@ -46,6 +46,10 @@ app.ports.playTheme.subscribe(() => {
 });
 
 app.ports.stopTheme.subscribe(() => {
+  if (!theme) {
+    return;
+  }
+
   theme.pause();
 });
 
