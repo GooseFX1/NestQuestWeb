@@ -5,6 +5,7 @@ type alias Model =
     { isMobile : Bool
     , wallet : Maybe State
     , themePlaying : Bool
+    , scrollIndex : Int
     }
 
 
@@ -30,3 +31,4 @@ type Msg
     | ConnectResponse (Maybe State)
     | Stake
     | PlayTheme
+    | Scroll Int

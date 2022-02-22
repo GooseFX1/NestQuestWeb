@@ -22,6 +22,7 @@ init model =
     ( { isMobile = model.screen.width < 688
       , wallet = Nothing
       , themePlaying = False
+      , scrollIndex = 0
       }
     , Cmd.none
     )

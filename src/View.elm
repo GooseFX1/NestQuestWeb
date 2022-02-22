@@ -4,9 +4,10 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (cappedWidth, style, when, whenAttr)
+import Helpers.View exposing (style, when)
 import Html exposing (Html)
-import Maybe.Extra exposing (unwrap)
+import Html.Events
+import Json.Decode as JD
 import Types exposing (Model, Msg(..), State)
 
 
@@ -31,6 +32,10 @@ view model =
             , height fill
             , Background.color bg
             , scrollbarY
+            , JD.at [ "target", "scrollTop" ] JD.float
+                |> JD.map (round >> Scroll)
+                |> Html.Events.on "scroll"
+                |> htmlAttribute
             , playButton model.themePlaying
                 |> inFront
             ]
@@ -69,27 +74,40 @@ viewMobile model =
         [ width <| px 390
         , height <| px 1732
         , centerX
-        , [ boxM body1 True
+        , [ boxM body1
+                |> when (model.scrollIndex > 0)
           , [ lineImg 1
-            , boxM body2 False
+                |> when (model.scrollIndex > 1)
+                |> el [ alignLeft, alignTop ]
+            , boxM body2
                 |> bump
+                |> when (model.scrollIndex > 2)
             ]
-                |> row [ spacing 20, alignRight ]
-          , [ boxM body3 True
+                |> row [ spacing 20, width fill ]
+          , [ boxM body3
                 |> bump
+                |> when (model.scrollIndex > 4)
             , lineImg 2
+                |> when (model.scrollIndex > 3)
+                |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 20, alignLeft ]
+                |> row [ spacing 20, width fill ]
           , [ lineImg 3
-            , boxM body4 False
+                |> when (model.scrollIndex > 5)
+                |> el [ alignLeft, alignTop ]
+            , boxM body4
                 |> bump
+                |> when (model.scrollIndex > 6)
             ]
-                |> row [ spacing 20, alignRight ]
-          , [ boxM body5 True
+                |> row [ spacing 20, width fill ]
+          , [ boxM body5
                 |> bump
+                |> when (model.scrollIndex > 8)
             , lineImg 4
+                |> when (model.scrollIndex > 7)
+                |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 20, alignLeft ]
+                |> row [ spacing 20, width fill ]
           ]
             |> column
                 [ width fill
@@ -170,64 +188,85 @@ viewDesktop model =
                     |> el
                         [ width <| px 424
                         , alignLeft
+                        , fadeIn
                         , image
                             [ height <| px 176
                             , width <| px 587
                             , moveRight 200
                             , moveUp 50
+                            , fadeIn
                             ]
                             { src = "/lines/1.png"
                             , description = ""
                             }
+                            |> when (model.scrollIndex > 1)
                             |> below
                         ]
+                    |> when (model.scrollIndex > 0)
                 , viewBox body2 False
                     |> el
                         [ width <| px 424
                         , alignRight
+                        , fadeIn
                         , image
                             [ height <| px 185
                             , width <| px 550
                             , moveLeft 320
                             , moveUp 75
+                            , fadeIn
                             ]
                             { src = "/lines/2.png"
                             , description = ""
                             }
+                            |> when (model.scrollIndex > 3)
                             |> below
                         ]
+                    |> when (model.scrollIndex > 2)
                 , viewBox body3 False
                     |> el
                         [ width <| px 424
                         , alignLeft
+                        , fadeIn
                         , image
                             [ height <| px 152
                             , width <| px 491
                             , moveRight 250
                             , moveUp 60
+                            , fadeIn
                             ]
                             { src = "/lines/3.png"
                             , description = ""
                             }
+                            |> when (model.scrollIndex > 5)
                             |> below
                         ]
+                    |> when (model.scrollIndex > 4)
                 , viewBox body4 False
                     |> el
                         [ width <| px 424
                         , alignRight
+                        , fadeIn
                         , image
                             [ height <| px 127
                             , width <| px 478
                             , moveLeft 300
                             , moveUp 50
+                            , fadeIn
                             ]
                             { src = "/lines/4.png"
                             , description = ""
                             }
+                            |> when (model.scrollIndex > 7)
                             |> below
                         ]
+                    |> when (model.scrollIndex > 6)
                 , viewBox body5 False
-                    |> el [ width <| px 424, alignLeft ]
+                    |> el
+                        [ width <| px 424
+                        , alignLeft
+                        , fadeIn
+                        ]
+                    |> when (model.scrollIndex > 8)
                 ]
                     |> column
                         [ spacing 20
@@ -279,18 +318,14 @@ blackChancery =
         ]
 
 
-boxM : ( Int, Int, String ) -> Bool -> Element msg
-boxM content left =
+boxM : ( Int, Int, String ) -> Element msg
+boxM content =
     image
         [ height <| px 204
         , width <| px 278
-        , if left then
-            alignLeft
-
-          else
-            alignRight
         , viewBox content True
             |> inFront
+        , fadeIn
         ]
         { src =
             "/parchment.png"
@@ -379,7 +414,7 @@ body5 =
 
 lineImg : Int -> Element msg
 lineImg n =
-    image [ height <| px 172, width <| px 70, alignTop ]
+    image [ height <| px 172, width <| px 50, fadeIn ]
         { src = "/headers/line" ++ String.fromInt n ++ ".png"
         , description = ""
         }
@@ -434,6 +469,7 @@ playButton playing =
     Input.button
         [ alignTop
         , alignRight
+        , hover
         , paddingEach
             { left = 30
             , right =
@@ -458,3 +494,8 @@ playButton playing =
                 , description = ""
                 }
         }
+
+
+fadeIn : Attribute msg
+fadeIn =
+    style "animation" "fadeIn 1s"
