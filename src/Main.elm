@@ -19,7 +19,7 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init model =
-    ( { isMobile = model.screen.width < 688
+    ( { isMobile = model.screen.width < 1024
       , wallet = Nothing
       , themePlaying = False
       , scrollIndex = 0

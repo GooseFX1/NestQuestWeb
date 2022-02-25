@@ -48,31 +48,38 @@ update msg model =
 
 mobileCheckpoints : Int -> Int -> Int
 mobileCheckpoints currentIndex scrollDepth =
-    if scrollDepth > 1400 then
+    let
+        start =
+            175
+
+        gap =
+            120
+    in
+    if scrollDepth > (start + gap * 8) then
         max currentIndex 9
 
-    else if scrollDepth > 1250 then
+    else if scrollDepth > (start + gap * 7) then
         max currentIndex 8
 
-    else if scrollDepth > 1100 then
+    else if scrollDepth > (start + gap * 6) then
         max currentIndex 7
 
-    else if scrollDepth > 950 then
+    else if scrollDepth > (start + gap * 5) then
         max currentIndex 6
 
-    else if scrollDepth > 800 then
+    else if scrollDepth > (start + gap * 4) then
         max currentIndex 5
 
-    else if scrollDepth > 650 then
+    else if scrollDepth > (start + gap * 3) then
         max currentIndex 4
 
-    else if scrollDepth > 500 then
+    else if scrollDepth > (start + gap * 2) then
         max currentIndex 3
 
-    else if scrollDepth > 350 then
+    else if scrollDepth > (start + gap) then
         max currentIndex 2
 
-    else if scrollDepth > 200 then
+    else if scrollDepth > start then
         max currentIndex 1
 
     else

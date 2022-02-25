@@ -87,6 +87,8 @@ viewMobile model =
           , [ boxM body3
                 |> bump
                 |> when (model.scrollIndex > 4)
+                -- Prevent fadeIn bug
+                |> el []
             , lineImg 2
                 |> when (model.scrollIndex > 3)
                 |> el [ alignRight, alignTop ]
@@ -103,6 +105,8 @@ viewMobile model =
           , [ boxM body5
                 |> bump
                 |> when (model.scrollIndex > 8)
+                -- Prevent fadeIn bug
+                |> el []
             , lineImg 4
                 |> when (model.scrollIndex > 7)
                 |> el [ alignRight, alignTop ]
@@ -474,10 +478,10 @@ playButton playing =
             { left = 30
             , right =
                 if playing then
-                    60
+                    50
 
                 else
-                    40
+                    30
             , top = 30
             , bottom = 30
             }
