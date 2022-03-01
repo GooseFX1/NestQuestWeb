@@ -44,7 +44,7 @@ module.exports = (env) => {
           use: elmLoader,
         },
         {
-          test: /\.ttf$/,
+          test: /\.(ttf|woff2)$/,
           type: "asset/inline",
         },
         {

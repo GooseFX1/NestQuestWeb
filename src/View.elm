@@ -2,13 +2,16 @@ module View exposing (view)
 
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (style, when)
+import Helpers.View exposing (cappedWidth, style, when, whenAttr)
 import Html exposing (Html)
+import Html.Attributes
 import Html.Events
 import Json.Decode as JD
 import Types exposing (Model, Msg(..), State)
+import View.Img as Img
 
 
 view : Model -> Html Msg
@@ -38,6 +41,9 @@ view model =
                 |> htmlAttribute
             , playButton model.themePlaying
                 |> inFront
+            , walletSelect
+                |> inFront
+                |> whenAttr model.walletSelect
             ]
 
 
@@ -132,24 +138,22 @@ viewMobile model =
 
 viewDesktop : Model -> Element Msg
 viewDesktop model =
-    [ [ image
+    [ newTabLink [ padding 20, hover ]
+        { url = "https://app.goosefx.io"
+        , label =
+            image
+                [ width <| px 100
+                ]
+                { src = "/brand.svg", description = "" }
+        }
+    , [ image
             [ centerX
-            , width <|
-                if model.isMobile then
-                    fill
-
-                else
-                    px 500
+            , width <| px 500
             ]
             { src = "/logo.png", description = "" }
       , [ image
             [ centerX
-            , width <|
-                if model.isMobile then
-                    fill
-
-                else
-                    px 500
+            , width <| px 500
             ]
             { src = "/slogan.png", description = "" }
 
@@ -283,6 +287,18 @@ viewDesktop model =
             ]
             { src = "/parchment-large.png", description = "" }
             |> inFront
+        , [ image
+                [ width <| px 243
+                ]
+                { src = "/egg-pending.png", description = "" }
+          , connectButton Nothing
+          ]
+            |> column
+                [ alignRight
+                , moveDown 380
+                , moveLeft 120
+                ]
+            |> inFront
         ]
         { src = "/world-desktop.png", description = "" }
     ]
@@ -298,14 +314,36 @@ bg =
     rgb255 42 42 42
 
 
+wine : Color
+wine =
+    rgb255 118 78 1
+
+
+salmon : Color
+salmon =
+    rgb255 233 211 148
+
+
 black : Color
 black =
     rgb255 0 0 0
 
 
+white : Color
+white =
+    rgb255 255 255 255
+
+
 gold : Color
 gold =
     rgb255 148 98 2
+
+
+meriendaRegular : Attribute msg
+meriendaRegular =
+    Font.family
+        [ Font.typeface "Merienda Regular"
+        ]
 
 
 meriendaBold : Attribute msg
@@ -470,21 +508,9 @@ formatAddress addr =
 
 playButton : Bool -> Element Msg
 playButton playing =
-    Input.button
-        [ alignTop
-        , alignRight
-        , hover
-        , paddingEach
-            { left = 30
-            , right =
-                if playing then
-                    50
-
-                else
-                    30
-            , top = 30
-            , bottom = 30
-            }
+    [ connectButton (Just "blah")
+    , Input.button
+        [ hover
         ]
         { onPress = Just PlayTheme
         , label =
@@ -498,6 +524,159 @@ playButton playing =
                 , description = ""
                 }
         }
+    ]
+        |> row
+            [ alignTop
+            , alignRight
+            , spacing 20
+            , paddingEach
+                { left = 30
+                , right =
+                    if playing then
+                        50
+
+                    else
+                        30
+                , top = 30
+                , bottom = 30
+                }
+            ]
+
+
+connectButton : Maybe String -> Element Msg
+connectButton addr =
+    Input.button
+        [ hover
+        , height <| px 58
+        , width <| px 230
+        , Border.width 3
+        , Border.color wine
+        , Border.rounded 30
+        , Background.color salmon
+        , Font.size 22
+        ]
+        { onPress = Just Connect
+        , label =
+            gradientText "Connect Wallet"
+                |> el [ centerX ]
+        }
+
+
+walletSelect : Element Msg
+walletSelect =
+    [ gradientText "Connect to a Wallet"
+        |> el [ centerX, Font.size 30 ]
+    , [ text "By connecting a wallet, you agree to Goose Labs, Inc, Terms of Service and acknowledge that you have read and understand the NestQuest disclaimer."
+      ]
+        |> paragraph
+            [ Font.center
+            , meriendaRegular
+            , Font.size 17
+            ]
+    , walletPill 0
+    , walletPill 1
+    , walletPill 2
+    , walletPill 3
+    ]
+        |> column
+            [ centerX
+            , centerY
+            , Background.color salmon
+            , cappedWidth 500
+            , spacing 35
+            , padding 40
+            , Border.rounded 30
+            , Border.width 5
+            , Border.color wine
+            , Input.button
+                [ alignTop
+                , alignRight
+                , padding 20
+                , hover
+                , Font.size 35
+                ]
+                { onPress = Just Connect
+                , label = text "X"
+                }
+                |> inFront
+            ]
+        |> el
+            [ width fill
+            , height fill
+            , Background.color <| rgba255 0 0 0 0.65
+            ]
+
+
+walletPill : Int -> Element Msg
+walletPill n =
+    let
+        name =
+            case n of
+                0 ->
+                    "Phantom"
+
+                1 ->
+                    "Solflare"
+
+                2 ->
+                    "Slope"
+
+                _ ->
+                    "Ledger"
+
+        img =
+            case n of
+                0 ->
+                    Img.phantom
+
+                1 ->
+                    Img.solflare
+
+                2 ->
+                    Img.slope
+
+                _ ->
+                    Img.ledger
+    in
+    Input.button
+        [ Border.rounded 60
+        , Background.color <| rgb255 118 78 1
+        , width fill
+        , padding 40
+        , hover
+        ]
+        { onPress = Just <| Select n
+        , label =
+            [ text name
+                |> el [ Font.color white, meriendaRegular, Font.size 27 ]
+            , image
+                [ height <| px 30, width <| px 30 ]
+                { src = img, description = "" }
+            ]
+                |> row [ spaceEvenly, width fill ]
+        }
+
+
+gradientText : String -> Element msg
+gradientText txt =
+    [ Html.text txt ]
+        |> Html.div
+            [ Html.Attributes.style
+                "-webkit-text-stroke"
+                "1.2px rgb(118, 78, 1)"
+            , Html.Attributes.style
+                "background-image"
+                """linear-gradient(
+                    to bottom,
+                    rgb(255, 214, 0) 26%,
+                    rgb(185, 117, 14) 78%
+                )"""
+            , Html.Attributes.style "-webkit-background-clip" "text"
+            , Html.Attributes.style "background-clip" "text"
+            , Html.Attributes.style "-webkit-text-fill-color" "transparent"
+            ]
+        |> html
+        |> el [ meriendaRegular ]
 
 
 fadeIn : Attribute msg

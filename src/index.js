@@ -1,10 +1,11 @@
 require("./index.css");
 
-//import {
-//PhantomWalletAdapter,
-//SolflareWalletAdapter,
-//SlopeWalletAdapter,
-//} from "@solana/wallet-adapter-wallets";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  SlopeWalletAdapter,
+  LedgerWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
 
 const web3 = require("./web3.js");
 const { Elm } = require("./Main.elm");
@@ -19,11 +20,24 @@ const app = Elm.Main.init({
   },
 });
 
-const getWallet = () => {
-  if (window.Slope) {
-    return new window.Slope();
+const getWallet = (n) => {
+  switch (n) {
+    case 0: {
+      return new PhantomWalletAdapter();
+    }
+    case 1: {
+      return new SolflareWalletAdapter();
+    }
+    case 2: {
+      return new SlopeWalletAdapter();
+    }
+    case 3: {
+      return new LedgerWalletAdapter();
+    }
+    default: {
+      return null;
+    }
   }
-  return window.solana || window.solflare || null;
 };
 
 const fetchState = async (wallet) => ({
@@ -61,18 +75,18 @@ app.ports.stake.subscribe((mintId) =>
   })
 );
 
-app.ports.connect.subscribe(() =>
+app.ports.connect.subscribe((n) =>
   (async () => {
-    const wallet = getWallet();
+    const wallet = getWallet(n);
 
     if (!wallet) {
       console.log("no wallet");
       return app.ports.connectResponse.send(null);
     }
 
-    if (wallet.isConnected) {
-      return app.ports.connectResponse.send(await fetchState(wallet));
-    }
+    //if (wallet.isConnected) {
+    //return app.ports.connectResponse.send(await fetchState(wallet));
+    //}
 
     await wallet.connect();
 

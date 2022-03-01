@@ -23,6 +23,7 @@ init model =
       , wallet = Nothing
       , themePlaying = False
       , scrollIndex = 0
+      , walletSelect = False
       }
     , Cmd.none
     )

@@ -9,7 +9,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Connect ->
-            ( model, Ports.connect () )
+            --( model, Ports.connect () )
+            ( { model | walletSelect = not model.walletSelect }, Cmd.none )
+
+        Select n ->
+            --( model, Ports.connect () )
+            ( model, Ports.connect n )
 
         Scroll scrollDepth ->
             ( { model

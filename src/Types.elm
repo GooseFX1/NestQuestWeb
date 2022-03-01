@@ -6,6 +6,7 @@ type alias Model =
     , wallet : Maybe State
     , themePlaying : Bool
     , scrollIndex : Int
+    , walletSelect : Bool
     }
 
 
@@ -32,3 +33,4 @@ type Msg
     | Stake
     | PlayTheme
     | Scroll Int
+    | Select Int

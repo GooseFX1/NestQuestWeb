@@ -16,7 +16,7 @@ port stopTheme : () -> Cmd msg
 port log : String -> Cmd msg
 
 
-port connect : () -> Cmd msg
+port connect : Int -> Cmd msg
 
 
 port disconnect : () -> Cmd msg

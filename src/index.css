@@ -20,3 +20,8 @@
   /*font-weight: 400;*/
   src: url("./fonts/merienda-bold.ttf") format("truetype");
 }
+
+@font-face {
+  font-family: "Merienda Regular";
+  src: url("./fonts/merienda-regular.woff2") format("woff2");
+}
