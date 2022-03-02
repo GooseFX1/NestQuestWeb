@@ -10,7 +10,8 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Types exposing (Model, Msg(..), State)
+import Maybe.Extra exposing (unwrap)
+import Types exposing (Model, Msg(..), Stake, State)
 import View.Img as Img
 
 
@@ -39,7 +40,7 @@ view model =
                 |> JD.map (round >> Scroll)
                 |> Html.Events.on "scroll"
                 |> htmlAttribute
-            , playButton model.themePlaying
+            , playButton (Maybe.map .address model.wallet) model.themePlaying model.dropdown
                 |> inFront
             , walletSelect
                 |> inFront
@@ -287,15 +288,36 @@ viewDesktop model =
             ]
             { src = "/parchment-large.png", description = "" }
             |> inFront
-        , [ image
+        , let
+            hasEgg =
+                model.wallet
+                    |> Maybe.andThen (.nfts >> List.head)
+                    |> Maybe.Extra.isJust
+          in
+          [ image
                 [ width <| px 243
                 ]
-                { src = "/egg-pending.png", description = "" }
-          , connectButton Nothing
+                { src =
+                    if hasEgg then
+                        "/egg-present.png"
+
+                    else
+                        "/egg-pending.png"
+                , description = ""
+                }
+          , if model.wallet == Nothing then
+                connectButton (Maybe.map .address model.wallet) model.dropdown
+
+            else
+                model.wallet
+                    |> Maybe.andThen .stake
+                    |> unwrap
+                        (incubateButton hasEgg)
+                        (withdrawButton model.time)
           ]
             |> column
                 [ alignRight
-                , moveDown 380
+                , moveDown 395
                 , moveLeft 120
                 ]
             |> inFront
@@ -319,8 +341,8 @@ wine =
     rgb255 118 78 1
 
 
-salmon : Color
-salmon =
+sand : Color
+sand =
     rgb255 233 211 148
 
 
@@ -483,8 +505,10 @@ fade =
 viewState : State -> Element Msg
 viewState state =
     [ Input.button []
-        { onPress = Just Stake
-        , label = formatAddress state.address
+        { onPress = Just Incubate
+        , label =
+            formatAddress state.address
+                |> text
         }
     , paragraph [ Font.color gold, Font.italic, Font.center ]
         [ "You have "
@@ -496,21 +520,21 @@ viewState state =
         |> column [ spacing 10, centerX ]
 
 
-formatAddress : String -> Element msg
+formatAddress : String -> String
 formatAddress addr =
-    (String.left 6 addr
+    --|> text
+    --|> el [ Font.color gold, centerX, Font.bold ]
+    String.left 4 addr
         ++ "..."
-        ++ String.right 6 addr
-    )
-        |> text
-        |> el [ Font.color gold, centerX, Font.bold ]
+        ++ String.right 4 addr
 
 
-playButton : Bool -> Element Msg
-playButton playing =
-    [ connectButton (Just "blah")
+playButton : Maybe String -> Bool -> Bool -> Element Msg
+playButton addr playing dropdown =
+    [ connectButton addr dropdown
     , Input.button
         [ hover
+        , alignTop
         ]
         { onPress = Just PlayTheme
         , label =
@@ -543,23 +567,112 @@ playButton playing =
             ]
 
 
-connectButton : Maybe String -> Element Msg
-connectButton addr =
+incubateButton : Bool -> Element Msg
+incubateButton hasEgg =
     Input.button
-        [ hover
-        , height <| px 58
+        [ height <| px 58
         , width <| px 230
         , Border.width 3
         , Border.color wine
         , Border.rounded 30
-        , Background.color salmon
+        , Background.color sand
         , Font.size 22
+        , whenAttr (not hasEgg) fade
         ]
-        { onPress = Just Connect
+        { onPress =
+            if hasEgg then
+                Just Incubate
+
+            else
+                Nothing
         , label =
-            gradientText "Connect Wallet"
+            gradientText "Incubate Egg"
                 |> el [ centerX ]
         }
+
+
+withdrawButton : Int -> Stake -> Element Msg
+withdrawButton time stake =
+    let
+        diff =
+            (time - stake.stakingStart) // 60
+    in
+    Input.button
+        [ height <| px 58
+        , width <| px 230
+        , Border.width 3
+        , Border.color wine
+        , Border.rounded 30
+        , Background.color sand
+        , Font.size 22
+        ]
+        { onPress =
+            if diff >= 10 then
+                Just <| Withdraw stake.mintId
+
+            else
+                Nothing
+        , label =
+            gradientText
+                --"Withdraw"
+                (String.fromInt diff ++ "mins")
+                |> el [ centerX ]
+        }
+
+
+connectButton : Maybe String -> Bool -> Element Msg
+connectButton addr dropdown =
+    [ Input.button
+        [ height <| px 58
+        , width <| px 230
+        , Border.width 3
+        , Border.color wine
+        , Border.rounded 30
+        , Background.color sand
+        , Font.size 22
+        ]
+        { onPress =
+            if addr == Nothing then
+                Just Connect
+
+            else
+                Just Convert
+        , label =
+            addr
+                |> unwrap
+                    (gradientText "Connect Wallet")
+                    (\val ->
+                        [ gradientText (formatAddress val)
+                        , image
+                            [ height <| px 30, width <| px 30 ]
+                            { src = "/caret.svg", description = "" }
+                        ]
+                            |> row [ spacing 10 ]
+                    )
+                |> el [ centerX, hover ]
+        }
+    , [ Input.button [ centerX, hover ]
+            { onPress = Just ChangeWallet
+            , label = gradientText "Change Wallet"
+            }
+      , Input.button [ centerX, hover ]
+            { onPress = Just Disconnect
+            , label = gradientText "Disconnect Wallet"
+            }
+      ]
+        |> column
+            [ spacing 20
+            , Background.color sand
+            , width fill
+            , padding 20
+            , Border.rounded 10
+            , Border.width 3
+            , Border.color wine
+            , Font.size 19
+            ]
+        |> when dropdown
+    ]
+        |> column [ spacing 10 ]
 
 
 walletSelect : Element Msg
@@ -581,7 +694,7 @@ walletSelect =
         |> column
             [ centerX
             , centerY
-            , Background.color salmon
+            , Background.color sand
             , cappedWidth 500
             , spacing 35
             , padding 40

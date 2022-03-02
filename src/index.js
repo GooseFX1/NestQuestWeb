@@ -13,37 +13,54 @@ const { Elm } = require("./Main.elm");
 // eslint-disable-next-line fp/no-let
 let theme = null;
 
+// eslint-disable-next-line fp/no-let
+let activeWallet = null;
+
 const app = Elm.Main.init({
   node: document.getElementById("app"),
   flags: {
     screen: { width: window.innerWidth, height: window.innerHeight },
+    now: Date.now(),
   },
 });
 
 const getWallet = (n) => {
-  switch (n) {
-    case 0: {
-      return new PhantomWalletAdapter();
+  const wallet = (() => {
+    switch (n) {
+      case 0: {
+        return new PhantomWalletAdapter();
+      }
+      case 1: {
+        return new SolflareWalletAdapter();
+      }
+      case 2: {
+        return new SlopeWalletAdapter();
+      }
+      default: {
+        return new LedgerWalletAdapter();
+      }
     }
-    case 1: {
-      return new SolflareWalletAdapter();
-    }
-    case 2: {
-      return new SlopeWalletAdapter();
-    }
-    case 3: {
-      return new LedgerWalletAdapter();
-    }
-    default: {
-      return null;
-    }
-  }
+  })();
+
+  return wallet.readyState === "Installed" || wallet.readyState === "Loadable"
+    ? wallet
+    : null;
 };
 
-const fetchState = async (wallet) => ({
-  address: wallet.publicKey.toString(),
-  nfts: await web3.fetchOwned(wallet),
-});
+const fetchState = async (wallet) => {
+  const data = await web3.fetchStake(wallet);
+  const stake = data
+    ? {
+        mintId: data.mintId.toString(),
+        stakingStart: data.stakingStart.toNumber(),
+      }
+    : null;
+  return {
+    address: wallet.publicKey.toString(),
+    nfts: await web3.fetchOwned(wallet),
+    stake,
+  };
+};
 
 app.ports.playTheme.subscribe(() => {
   if (theme) {
@@ -69,26 +86,43 @@ app.ports.stopTheme.subscribe(() => {
 
 app.ports.stake.subscribe((mintId) =>
   (async () => {
-    console.log(mintId);
+    if (!(activeWallet && activeWallet.connected)) {
+      return;
+    }
+    const res = await web3.deposit(activeWallet, mintId);
+    console.log(res);
+    alert("Success!");
   })().catch((e) => {
     console.error(e);
   })
 );
 
-app.ports.connect.subscribe((n) =>
+app.ports.withdraw.subscribe((mintId) =>
   (async () => {
-    const wallet = getWallet(n);
+    if (!(activeWallet && activeWallet.connected)) {
+      return;
+    }
+    const res = await web3.withdraw(activeWallet, mintId);
+    console.log(res);
+    alert("Success!");
+  })().catch((e) => {
+    console.error(e);
+  })
+);
+
+app.ports.connect.subscribe((id) =>
+  (async () => {
+    const wallet = getWallet(id);
 
     if (!wallet) {
       console.log("no wallet");
       return app.ports.connectResponse.send(null);
     }
 
-    //if (wallet.isConnected) {
-    //return app.ports.connectResponse.send(await fetchState(wallet));
-    //}
-
     await wallet.connect();
+
+    // eslint-disable-next-line fp/no-mutation
+    activeWallet = wallet;
 
     return app.ports.connectResponse.send(await fetchState(wallet));
   })().catch((e) => {
@@ -96,3 +130,9 @@ app.ports.connect.subscribe((n) =>
     return app.ports.connectResponse.send(null);
   })
 );
+
+app.ports.disconnect.subscribe(async () => {
+  if (activeWallet && activeWallet.connected) {
+    await activeWallet.disconnect();
+  }
+});

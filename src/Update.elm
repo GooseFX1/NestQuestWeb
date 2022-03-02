@@ -9,8 +9,46 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Connect ->
-            --( model, Ports.connect () )
-            ( { model | walletSelect = not model.walletSelect }, Cmd.none )
+            ( { model | walletSelect = not model.walletSelect }
+            , Cmd.none
+            )
+
+        Incubate ->
+            ( model
+            , model.wallet
+                |> Maybe.andThen (.nfts >> List.head)
+                |> unwrap Cmd.none Ports.stake
+            )
+
+        Withdraw mintId ->
+            ( model
+            , Ports.withdraw mintId
+            )
+
+        Disconnect ->
+            model.wallet
+                |> unwrap ( model, Cmd.none )
+                    (\state ->
+                        ( { model
+                            | wallet = Nothing
+                            , dropdown = False
+                          }
+                        , Ports.disconnect ()
+                        )
+                    )
+
+        ChangeWallet ->
+            model.wallet
+                |> unwrap ( model, Cmd.none )
+                    (\state ->
+                        ( { model
+                            | wallet = Nothing
+                            , dropdown = False
+                            , walletSelect = True
+                          }
+                        , Ports.disconnect ()
+                        )
+                    )
 
         Select n ->
             --( model, Ports.connect () )
@@ -29,7 +67,10 @@ update msg model =
             )
 
         ConnectResponse val ->
-            ( { model | wallet = val }, Cmd.none )
+            ( { model | wallet = val, walletSelect = False }, Cmd.none )
+
+        Convert ->
+            ( { model | dropdown = not model.dropdown }, Cmd.none )
 
         PlayTheme ->
             if model.themePlaying then
@@ -41,14 +82,6 @@ update msg model =
                 ( { model | themePlaying = True }
                 , Ports.playTheme ()
                 )
-
-        Stake ->
-            ( model
-            , model.wallet
-                |> Maybe.andThen
-                    (.nfts >> List.head)
-                |> unwrap Cmd.none Ports.stake
-            )
 
 
 mobileCheckpoints : Int -> Int -> Int

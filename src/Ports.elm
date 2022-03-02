@@ -1,4 +1,4 @@
-port module Ports exposing (connect, connectResponse, disconnect, log, playTheme, stake, stopTheme)
+port module Ports exposing (connect, connectResponse, disconnect, log, playTheme, stake, stopTheme, withdraw)
 
 import Types
 
@@ -14,6 +14,9 @@ port stopTheme : () -> Cmd msg
 
 
 port log : String -> Cmd msg
+
+
+port withdraw : String -> Cmd msg
 
 
 port connect : Int -> Cmd msg

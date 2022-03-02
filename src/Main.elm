@@ -18,12 +18,14 @@ main =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init model =
-    ( { isMobile = model.screen.width < 1024
+init flags =
+    ( { isMobile = flags.screen.width < 1024
       , wallet = Nothing
       , themePlaying = False
       , scrollIndex = 0
       , walletSelect = False
+      , dropdown = False
+      , time = flags.now // 1000
       }
     , Cmd.none
     )

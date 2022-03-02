@@ -1,4 +1,4 @@
-module Types exposing (Flags, Model, Msg(..), State)
+module Types exposing (Flags, Model, Msg(..), Stake, State)
 
 
 type alias Model =
@@ -7,11 +7,14 @@ type alias Model =
     , themePlaying : Bool
     , scrollIndex : Int
     , walletSelect : Bool
+    , dropdown : Bool
+    , time : Int
     }
 
 
 type alias Flags =
     { screen : Screen
+    , now : Int
     }
 
 
@@ -23,14 +26,25 @@ type alias Screen =
 
 type alias State =
     { address : String
+    , stake : Maybe Stake
     , nfts : List String
+    }
+
+
+type alias Stake =
+    { mintId : String
+    , stakingStart : Int
     }
 
 
 type Msg
     = Connect
     | ConnectResponse (Maybe State)
-    | Stake
     | PlayTheme
     | Scroll Int
     | Select Int
+    | Convert
+    | Disconnect
+    | ChangeWallet
+    | Incubate
+    | Withdraw String
