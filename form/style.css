@@ -1,0 +1,112 @@
+
+body {
+  background: rgb(22,22,22);
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  top:  0;
+}
+
+#logo{ 
+  position:fixed; 
+  top:0; 
+  left:0; 
+  margin:  20px;
+} 
+
+
+div {
+  max-width: 500px;
+  align-content: center;
+  text-align: center;
+}
+
+
+.form__group {
+  position: relative;
+  padding: 15px 0 0;
+  margin-top: 10px;
+  width: 50%;
+  max-width: 300px;
+  border-radius: 25px;
+}
+
+.form__field {
+  font-family: Arial, sans-serif;
+  width: 90%;
+  border: 0;
+  outline: 0;
+  font-size: 1 rem;
+  color: #ffffff;
+  padding: 10px 0;
+  background: #111111;
+  transition: border-color 0s;
+  border-radius: 5px;
+  text-align: center; 
+
+
+}
+
+.form__label {
+  position: absolute;
+  top: 0;
+  display: block;
+  transition: 0.2s;
+  font-size: 1rem;
+  color: #080808;
+}
+
+
+.button {
+  background-color: #111111; /* Green */
+  border: none;
+  color: white;
+  padding: 12px 25px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+
+
+
+a    {color: white;
+  font-size: 20px;}
+
+
+
+
+/* Tablet Landscape */
+@media screen and (max-width: 1060px) {
+    #primary { width:67%;}
+    #secondary { width:30%; margin-left:3%;}  
+    .img2 { max-width: 95%; }
+    table { max-width: 95%; }
+    .slider {max-width: 9500%;}
+    .info2 {
+  width: 90%;}
+  video {
+    max-width: 90%;
+  border-radius: 5px;
+}
+}
+
+
+/* Tabled Portrait */
+@media screen and (max-width: 768px) {
+    #primary { width:100%; }
+    #secondary { width:100%; margin:0; border:none; }
+    .img2 { max-width: 95%; }
+    table { max-width: 95%; }
+    .info2 {
+  width: 90%;
+  }
+  video {
+    max-width: 90%;
+  border-radius: 5px;}
+}
+
+
