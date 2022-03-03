@@ -149,36 +149,19 @@ viewDesktop model =
         }
     , [ image
             [ centerX
-            , width <| px 500
+            , width <| px 276
             ]
             { src = "/logo.png", description = "" }
-      , [ image
+      , image
             [ centerX
-            , width <| px 500
+            , width <| px 639
             ]
             { src = "/slogan.png", description = "" }
-
-        --, model.wallet
-        --|> unwrap
-        --(Input.button
-        --[ Font.underline
-        --, Font.color gold
-        --, blackChancery
-        --, Font.size 30
-        --, centerX
-        --, hover
-        --]
-        --{ onPress = Just Connect
-        --, label = text "Connect wallet"
-        --}
-        --)
-        --viewState
-        ]
-            |> column [ width fill, spacing 15 ]
       ]
         |> column
             [ width fill
             , padding 50
+            , spacing 40
             ]
     , image
         [ centerX
@@ -187,9 +170,34 @@ viewDesktop model =
         , image
             [ centerX
             , moveDown 1048
-            , width <| px 1199
-            , height <| px 1641
-            , [ image [ height <| px 69, width <| px 234, centerX ]
+            , width <| px 1311
+            , height <| px 2029
+            , [ image [ height <| px 97, width <| px 572, centerX ]
+                    { src = "/prompt.png"
+                    , description = ""
+                    }
+              , [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
+                  , newTabLink [ hover, Font.underline ]
+                        { url = "https://app.goosefx.io"
+                        , label = text "GooseFX"
+                        }
+                  , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
+                  ]
+                    |> paragraph []
+                , text "Those who use our platform the most will be rewarded handsomely."
+                    |> el [ centerX ]
+                ]
+                    |> column
+                        [ Font.color wine
+                        , Font.center
+                        , cappedWidth 855
+                        , centerX
+                        , meriendaBold
+                        , paddingXY 0 30
+                        , spacing 5
+                        , Font.size 22
+                        ]
+              , image [ height <| px 69, width <| px 234, centerX ]
                     { src = "/roadmap.svg"
                     , description = ""
                     }
@@ -280,13 +288,18 @@ viewDesktop model =
                     |> column
                         [ spacing 20
                         , width fill
-                        , paddingXY 100 50
+                        , paddingXY 100 0
                         ]
               ]
-                |> column [ width fill, height fill, paddingXY 0 150 ]
+                |> column
+                    [ width fill
+                    , height fill
+                    , paddingXY 0 150
+                    , spacing 40
+                    ]
                 |> inFront
             ]
-            { src = "/parchment-large.png", description = "" }
+            { src = "/parchment-desktop.svg", description = "" }
             |> inFront
         , let
             hasEgg =
@@ -534,17 +547,16 @@ playButton addr playing dropdown =
     [ connectButton addr dropdown
     , Input.button
         [ hover
-        , alignTop
         ]
         { onPress = Just PlayTheme
         , label =
             image []
                 { src =
                     if playing then
-                        "/stop.svg"
+                        "/play.svg"
 
                     else
-                        "/play.svg"
+                        "/stop.svg"
                 , description = ""
                 }
         }
@@ -552,15 +564,15 @@ playButton addr playing dropdown =
         |> row
             [ alignTop
             , alignRight
-            , spacing 20
+            , spacing 30
             , paddingEach
                 { left = 30
                 , right =
                     if playing then
-                        50
+                        40
 
                     else
-                        30
+                        60
                 , top = 30
                 , bottom = 30
                 }
@@ -605,9 +617,10 @@ withdrawButton time stake =
         , Border.rounded 30
         , Background.color sand
         , Font.size 22
+        , whenAttr (diff < 3) fade
         ]
         { onPress =
-            if diff >= 10 then
+            if diff >= 3 then
                 Just <| Withdraw stake.mintId
 
             else

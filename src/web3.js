@@ -96,18 +96,14 @@ const deposit = async (wallet, mintId) => {
     program.programId
   );
 
-  const [stakeAddr, stakeBump] = await web3.PublicKey.findProgramAddress(
+  const [stakeAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("stake"), wallet.publicKey.toBuffer()],
     program.programId
   );
 
-  const stakeAcct = await program.account.stake.fetchNullable(stakeAddr);
-
   const metadataAddr = await Metadata.getPDA(mintId);
 
-  const transaction = new web3.Transaction();
-
-  const depositIx = await program.instruction.deposit(stakeBump, {
+  const transaction = await program.transaction.deposit({
     accounts: {
       payer: wallet.publicKey,
       vault: vaultAddr,
@@ -123,20 +119,6 @@ const deposit = async (wallet, mintId) => {
       stake: stakeAddr,
     },
   });
-
-  if (!stakeAcct) {
-    transaction.add(
-      await program.instruction.initializeStake({
-        accounts: {
-          payer: wallet.publicKey,
-          stake: stakeAddr,
-          systemProgram: web3.SystemProgram.programId,
-          rent: web3.SYSVAR_RENT_PUBKEY,
-        },
-      })
-    );
-  }
-  transaction.add(depositIx);
 
   return launch(wallet, transaction);
 };
