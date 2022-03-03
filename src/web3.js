@@ -2,12 +2,12 @@ import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, Provider, Program, utils } from "@project-serum/anchor";
 
-const PROGRAM_ID = "FPAeKRAoKuvewpCkEXRZhQyr2BfnQEfabPorQ7FavHhG";
+const PROGRAM_ID = "NQDKVecDDY3espZ7LynBrFSy8fTr8VrTrXQ7PRBMK1a";
 const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
 
 const idl = require("./nestquest.json");
 
-const connection = new web3.Connection("https://api.devnet.solana.com");
+const connection = new web3.Connection("https://api.mainnet-beta.solana.com");
 
 const provider = new Provider(connection, "processed");
 
