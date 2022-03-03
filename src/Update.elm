@@ -88,7 +88,7 @@ mobileCheckpoints : Int -> Int -> Int
 mobileCheckpoints currentIndex scrollDepth =
     let
         start =
-            175
+            875
 
         gap =
             120

@@ -42,7 +42,8 @@ view model =
                 |> htmlAttribute
             , playButton (Maybe.map .address model.wallet) model.themePlaying model.dropdown
                 |> inFront
-            , walletSelect
+                |> whenAttr (not model.isMobile)
+            , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
             ]
@@ -50,7 +51,12 @@ view model =
 
 viewMobile : Model -> Element Msg
 viewMobile model =
-    [ [ image
+    [ [ gooseIcon 50
+      , connectButton False (Maybe.map .address model.wallet) model.dropdown
+      , musicButton model.themePlaying
+      ]
+        |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
+    , [ image
             [ centerX
             , width <|
                 if model.isMobile then
@@ -78,10 +84,31 @@ viewMobile model =
             , padding 50
             ]
     , image
-        [ width <| px 390
-        , height <| px 1732
+        [ width <| px 381
+        , height <| px 2098
         , centerX
-        , [ boxM body1
+        , [ image
+                [ height <| px 480
+                , width <| px 355
+                , centerX
+                , infoText
+                    |> column
+                        [ Font.color wine
+                        , Font.center
+                        , meriendaBold
+                        , spacing 5
+                        , Font.size 14
+                        , width <| px 308
+                        , moveDown 150
+                        , centerX
+                        ]
+                    |> inFront
+                ]
+                { src = "/parchment-mobile.svg"
+                , description = ""
+                }
+          , el [ height <| px 30, width fill ] none
+          , boxM body1
                 |> when (model.scrollIndex > 0)
           , [ lineImg 1
                 |> when (model.scrollIndex > 1)
@@ -90,7 +117,7 @@ viewMobile model =
                 |> bump
                 |> when (model.scrollIndex > 2)
             ]
-                |> row [ spacing 20, width fill ]
+                |> row [ spacing 10, width fill ]
           , [ boxM body3
                 |> bump
                 |> when (model.scrollIndex > 4)
@@ -100,7 +127,7 @@ viewMobile model =
                 |> when (model.scrollIndex > 3)
                 |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 20, width fill ]
+                |> row [ spacing 10, width fill ]
           , [ lineImg 3
                 |> when (model.scrollIndex > 5)
                 |> el [ alignLeft, alignTop ]
@@ -108,7 +135,7 @@ viewMobile model =
                 |> bump
                 |> when (model.scrollIndex > 6)
             ]
-                |> row [ spacing 20, width fill ]
+                |> row [ spacing 10, width fill ]
           , [ boxM body5
                 |> bump
                 |> when (model.scrollIndex > 8)
@@ -118,7 +145,7 @@ viewMobile model =
                 |> when (model.scrollIndex > 7)
                 |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 20, width fill ]
+                |> row [ spacing 10, width fill ]
           ]
             |> column
                 [ width fill
@@ -127,6 +154,7 @@ viewMobile model =
                 , spacing 15
                 ]
             |> inFront
+        , viewIncubate True model.time model.wallet model.dropdown
         ]
         { src = "/world-mobile.png", description = "" }
     ]
@@ -139,14 +167,8 @@ viewMobile model =
 
 viewDesktop : Model -> Element Msg
 viewDesktop model =
-    [ newTabLink [ padding 20, hover ]
-        { url = "https://app.goosefx.io"
-        , label =
-            image
-                [ width <| px 100
-                ]
-                { src = "/brand.svg", description = "" }
-        }
+    [ gooseIcon 100
+        |> el [ padding 20 ]
     , [ image
             [ centerX
             , width <| px 276
@@ -176,17 +198,7 @@ viewDesktop model =
                     { src = "/prompt.png"
                     , description = ""
                     }
-              , [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
-                  , newTabLink [ hover, Font.underline ]
-                        { url = "https://app.goosefx.io"
-                        , label = text "GooseFX"
-                        }
-                  , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
-                  ]
-                    |> paragraph []
-                , text "Those who use our platform the most will be rewarded handsomely."
-                    |> el [ centerX ]
-                ]
+              , infoText
                     |> column
                         [ Font.color wine
                         , Font.center
@@ -301,39 +313,7 @@ viewDesktop model =
             ]
             { src = "/parchment-desktop.svg", description = "" }
             |> inFront
-        , let
-            hasEgg =
-                model.wallet
-                    |> Maybe.andThen (.nfts >> List.head)
-                    |> Maybe.Extra.isJust
-          in
-          [ image
-                [ width <| px 243
-                ]
-                { src =
-                    if hasEgg then
-                        "/egg-present.png"
-
-                    else
-                        "/egg-pending.png"
-                , description = ""
-                }
-          , if model.wallet == Nothing then
-                connectButton (Maybe.map .address model.wallet) model.dropdown
-
-            else
-                model.wallet
-                    |> Maybe.andThen .stake
-                    |> unwrap
-                        (incubateButton hasEgg)
-                        (withdrawButton model.time)
-          ]
-            |> column
-                [ alignRight
-                , moveDown 395
-                , moveLeft 120
-                ]
-            |> inFront
+        , viewIncubate False model.time model.wallet model.dropdown
         ]
         { src = "/world-desktop.png", description = "" }
     ]
@@ -342,6 +322,79 @@ viewDesktop model =
             , width fill
             , height fill
             ]
+
+
+infoText =
+    [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
+      , newTabLink [ hover, Font.underline ]
+            { url = "https://app.goosefx.io"
+            , label = text "GooseFX"
+            }
+      , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
+      ]
+        |> paragraph []
+    , [ text "Those who use our platform the most will be rewarded handsomely." ]
+        |> paragraph []
+    ]
+
+
+viewIncubate : Bool -> Int -> Maybe State -> Bool -> Attribute Msg
+viewIncubate isMobile time wallet dropdown =
+    let
+        down =
+            if isMobile then
+                80
+
+            else
+                395
+
+        left =
+            if isMobile then
+                0
+
+            else
+                120
+
+        hasEgg =
+            wallet
+                |> Maybe.andThen (.nfts >> List.head)
+                |> Maybe.Extra.isJust
+    in
+    [ image
+        [ width <|
+            px
+                (if isMobile then
+                    120
+
+                 else
+                    243
+                )
+        , centerX
+        ]
+        { src =
+            if hasEgg then
+                "/egg-present.png"
+
+            else
+                "/egg-pending.png"
+        , description = ""
+        }
+    , if wallet == Nothing then
+        connectButton isMobile (Maybe.map .address wallet) dropdown
+
+      else
+        wallet
+            |> Maybe.andThen .stake
+            |> unwrap
+                (incubateButton isMobile hasEgg)
+                (withdrawButton isMobile time)
+    ]
+        |> column
+            [ alignRight
+            , moveDown down
+            , moveLeft left
+            ]
+        |> inFront
 
 
 bg : Color
@@ -499,7 +552,7 @@ lineImg n =
 
 bump : Element msg -> Element msg
 bump elem =
-    [ el [ height <| px 65 ] none
+    [ el [ height <| px 45 ] none
     , elem
     ]
         |> column []
@@ -515,24 +568,6 @@ fade =
     Element.alpha 0.7
 
 
-viewState : State -> Element Msg
-viewState state =
-    [ Input.button []
-        { onPress = Just Incubate
-        , label =
-            formatAddress state.address
-                |> text
-        }
-    , paragraph [ Font.color gold, Font.italic, Font.center ]
-        [ "You have "
-            ++ String.fromInt (List.length state.nfts)
-            ++ " NestQuest NFT(s)."
-            |> text
-        ]
-    ]
-        |> column [ spacing 10, centerX ]
-
-
 formatAddress : String -> String
 formatAddress addr =
     --|> text
@@ -544,22 +579,8 @@ formatAddress addr =
 
 playButton : Maybe String -> Bool -> Bool -> Element Msg
 playButton addr playing dropdown =
-    [ connectButton addr dropdown
-    , Input.button
-        [ hover
-        ]
-        { onPress = Just PlayTheme
-        , label =
-            image []
-                { src =
-                    if playing then
-                        "/play.svg"
-
-                    else
-                        "/stop.svg"
-                , description = ""
-                }
-        }
+    [ connectButton False addr dropdown
+    , musicButton playing
     ]
         |> row
             [ alignTop
@@ -579,16 +600,50 @@ playButton addr playing dropdown =
             ]
 
 
-incubateButton : Bool -> Element Msg
-incubateButton hasEgg =
+musicButton : Bool -> Element Msg
+musicButton playing =
+    Input.button
+        [ hover
+        ]
+        { onPress = Just PlayTheme
+        , label =
+            image []
+                { src =
+                    if playing then
+                        "/play.svg"
+
+                    else
+                        "/stop.svg"
+                , description = ""
+                }
+        }
+
+
+incubateButton : Bool -> Bool -> Element Msg
+incubateButton isMobile hasEgg =
+    let
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+    in
     Input.button
         [ height <| px 58
-        , width <| px 230
+        , width <| px w
         , Border.width 3
         , Border.color wine
         , Border.rounded 30
         , Background.color sand
-        , Font.size 22
+        , Font.size fnt
         , whenAttr (not hasEgg) fade
         ]
         { onPress =
@@ -603,24 +658,41 @@ incubateButton hasEgg =
         }
 
 
-withdrawButton : Int -> Stake -> Element Msg
-withdrawButton time stake =
+withdrawButton : Bool -> Int -> Stake -> Element Msg
+withdrawButton isMobile time stake =
     let
         diff =
             (time - stake.stakingStart) // 60
+
+        canWithdraw =
+            diff >= 10
+
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
     in
     Input.button
         [ height <| px 58
-        , width <| px 230
+        , width <| px w
         , Border.width 3
         , Border.color wine
         , Border.rounded 30
         , Background.color sand
-        , Font.size 22
-        , whenAttr (diff < 3) fade
+        , Font.size fnt
+        , whenAttr (not canWithdraw) fade
         ]
         { onPress =
-            if diff >= 3 then
+            if canWithdraw then
                 Just <| Withdraw stake.mintId
 
             else
@@ -633,8 +705,23 @@ withdrawButton time stake =
         }
 
 
-connectButton : Maybe String -> Bool -> Element Msg
-connectButton addr dropdown =
+connectButton : Bool -> Maybe String -> Bool -> Element Msg
+connectButton isMobile addr dropdown =
+    let
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+    in
     [ Input.button
         [ height <| px 58
         , width <| px 230
@@ -664,32 +751,37 @@ connectButton addr dropdown =
                     )
                 |> el [ centerX, hover ]
         }
-    , [ Input.button [ centerX, hover ]
-            { onPress = Just ChangeWallet
-            , label = gradientText "Change Wallet"
-            }
-      , Input.button [ centerX, hover ]
-            { onPress = Just Disconnect
-            , label = gradientText "Disconnect Wallet"
-            }
-      ]
-        |> column
-            [ spacing 20
-            , Background.color sand
-            , width fill
-            , padding 20
-            , Border.rounded 10
-            , Border.width 3
-            , Border.color wine
-            , Font.size 19
-            ]
-        |> when dropdown
+    , el
+        [ [ Input.button [ centerX, hover ]
+                { onPress = Just ChangeWallet
+                , label = gradientText "Change Wallet"
+                }
+          , Input.button [ centerX, hover ]
+                { onPress = Just Disconnect
+                , label = gradientText "Disconnect Wallet"
+                }
+          ]
+            |> column
+                [ spacing 20
+                , Background.color sand
+                , width fill
+                , padding 20
+                , Border.rounded 10
+                , Border.width 3
+                , Border.color wine
+                , Font.size 19
+                ]
+            |> below
+            |> whenAttr dropdown
+        , width fill
+        ]
+        none
     ]
         |> column [ spacing 10 ]
 
 
-walletSelect : Element Msg
-walletSelect =
+walletSelect : Bool -> Element Msg
+walletSelect isMobile =
     [ gradientText "Connect to a Wallet"
         |> el [ centerX, Font.size 30 ]
     , [ text "By connecting a wallet, you agree to Goose Labs, Inc, Terms of Service and acknowledge that you have read and understand the NestQuest disclaimer."
@@ -699,17 +791,22 @@ walletSelect =
             , meriendaRegular
             , Font.size 17
             ]
-    , walletPill 0
-    , walletPill 1
-    , walletPill 2
-    , walletPill 3
+    , walletPill 0 isMobile
+    , walletPill 1 isMobile
+    , walletPill 2 isMobile
+    , walletPill 3 isMobile
     ]
         |> column
             [ centerX
-            , centerY
             , Background.color sand
             , cappedWidth 500
-            , spacing 35
+            , spacing
+                (if isMobile then
+                    15
+
+                 else
+                    35
+                )
             , padding 40
             , Border.rounded 30
             , Border.width 5
@@ -719,7 +816,14 @@ walletSelect =
                 , alignRight
                 , padding 20
                 , hover
-                , Font.size 35
+                , Font.bold
+                , Font.size
+                    (if isMobile then
+                        25
+
+                     else
+                        35
+                    )
                 ]
                 { onPress = Just Connect
                 , label = text "X"
@@ -729,12 +833,17 @@ walletSelect =
         |> el
             [ width fill
             , height fill
+            , paddingXY 20 50
+            ]
+        |> el
+            [ width fill
+            , height fill
             , Background.color <| rgba255 0 0 0 0.65
             ]
 
 
-walletPill : Int -> Element Msg
-walletPill n =
+walletPill : Int -> Bool -> Element Msg
+walletPill n isMobile =
     let
         name =
             case n of
@@ -768,7 +877,13 @@ walletPill n =
         [ Border.rounded 60
         , Background.color <| rgb255 118 78 1
         , width fill
-        , padding 40
+        , padding
+            (if isMobile then
+                20
+
+             else
+                40
+            )
         , hover
         ]
         { onPress = Just <| Select n
@@ -808,3 +923,15 @@ gradientText txt =
 fadeIn : Attribute msg
 fadeIn =
     style "animation" "fadeIn 1s"
+
+
+gooseIcon : Int -> Element msg
+gooseIcon n =
+    newTabLink [ hover ]
+        { url = "https://app.goosefx.io"
+        , label =
+            image
+                [ width <| px n
+                ]
+                { src = "/brand.svg", description = "" }
+        }
