@@ -52,7 +52,7 @@ view model =
 viewMobile : Model -> Element Msg
 viewMobile model =
     [ [ gooseIcon 50
-      , connectButton False (Maybe.map .address model.wallet) model.dropdown
+      , connectButton True (Maybe.map .address model.wallet) model.dropdown
       , musicButton model.themePlaying
       ]
         |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
@@ -665,7 +665,7 @@ withdrawButton isMobile time stake =
             (time - stake.stakingStart) // 60
 
         canWithdraw =
-            diff >= 10
+            diff >= 43200
 
         w =
             if isMobile then
@@ -724,12 +724,12 @@ connectButton isMobile addr dropdown =
     in
     [ Input.button
         [ height <| px 58
-        , width <| px 230
+        , width <| px w
         , Border.width 3
         , Border.color wine
         , Border.rounded 30
         , Background.color sand
-        , Font.size 22
+        , Font.size fnt
         ]
         { onPress =
             if addr == Nothing then

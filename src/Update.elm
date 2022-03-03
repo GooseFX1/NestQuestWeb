@@ -58,7 +58,7 @@ update msg model =
             ( { model
                 | scrollIndex =
                     if model.isMobile then
-                        mobileCheckpoints model.scrollIndex scrollDepth
+                        mobileCheckpoints model.scrollStart model.scrollIndex scrollDepth
 
                     else
                         desktopCheckpoints model.scrollIndex scrollDepth
@@ -68,6 +68,9 @@ update msg model =
 
         ConnectResponse val ->
             ( { model | wallet = val, walletSelect = False }, Cmd.none )
+
+        StakeResponse val ->
+            ( { model | incubationSuccess = Just val }, Cmd.none )
 
         Convert ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
@@ -84,11 +87,14 @@ update msg model =
                 )
 
 
-mobileCheckpoints : Int -> Int -> Int
-mobileCheckpoints currentIndex scrollDepth =
+mobileCheckpoints : Int -> Int -> Int -> Int
+mobileCheckpoints screenHeight currentIndex scrollVal =
     let
         start =
-            875
+            1400
+
+        scrollDepth =
+            screenHeight + scrollVal
 
         gap =
             120

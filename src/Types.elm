@@ -9,6 +9,8 @@ type alias Model =
     , walletSelect : Bool
     , dropdown : Bool
     , time : Int
+    , scrollStart : Int
+    , incubationSuccess : Maybe Bool
     }
 
 
@@ -48,3 +50,4 @@ type Msg
     | ChangeWallet
     | Incubate
     | Withdraw String
+    | StakeResponse Bool

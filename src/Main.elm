@@ -26,6 +26,8 @@ init flags =
       , walletSelect = False
       , dropdown = False
       , time = flags.now // 1000
+      , scrollStart = flags.screen.height
+      , incubationSuccess = Nothing
       }
     , Cmd.none
     )
@@ -34,5 +36,6 @@ init flags =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     [ Ports.connectResponse Types.ConnectResponse
+    , Ports.stakeResponse Types.StakeResponse
     ]
         |> Sub.batch
