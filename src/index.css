@@ -7,6 +7,17 @@
   }
 }
 
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    -webkit-transform: scale(1);
+  }
+  100% {
+    transform: scale(1.4);
+    -webkit-transform: scale(1.4);
+  }
+}
+
 @font-face {
   font-family: "Black Chancery";
   /*font-style: normal;*/

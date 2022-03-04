@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -10,7 +11,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Maybe.Extra exposing (unwrap)
+import Maybe.Extra exposing (isJust, unwrap)
 import Types exposing (Model, Msg(..), Stake, State)
 import View.Img as Img
 
@@ -25,12 +26,17 @@ view model =
     )
         |> Element.layoutWith
             { options =
-                [ Element.focusStyle
+                Element.focusStyle
                     { borderColor = Nothing
                     , backgroundColor = Nothing
                     , shadow = Nothing
                     }
-                ]
+                    :: (if model.isMobile then
+                            [ Element.noHover ]
+
+                        else
+                            []
+                       )
             }
             [ width fill
             , height fill
@@ -40,7 +46,7 @@ view model =
                 |> JD.map (round >> Scroll)
                 |> Html.Events.on "scroll"
                 |> htmlAttribute
-            , playButton (Maybe.map .address model.wallet) model.themePlaying model.dropdown
+            , playButton model.playButtonPulse (Maybe.map .address model.wallet) model.themePlaying model.dropdown
                 |> inFront
                 |> whenAttr (not model.isMobile)
             , walletSelect model.isMobile
@@ -53,7 +59,7 @@ viewMobile : Model -> Element Msg
 viewMobile model =
     [ [ gooseIcon 50
       , connectButton True (Maybe.map .address model.wallet) model.dropdown
-      , musicButton model.themePlaying
+      , musicButton model.playButtonPulse model.themePlaying
       ]
         |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
     , [ image
@@ -84,7 +90,8 @@ viewMobile model =
             , padding 50
             ]
     , image
-        [ width <| px 381
+        [ --width <| px 381
+          cappedWidth 381
         , height <| px 2098
         , centerX
         , [ image
@@ -145,7 +152,13 @@ viewMobile model =
                 |> when (model.scrollIndex > 7)
                 |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 10, width fill ]
+                |> row
+                    [ spacing 10
+                    , width fill
+                    , getEgg True
+                        |> el [ moveRight 210, moveDown 140 ]
+                        |> inFront
+                    ]
           ]
             |> column
                 [ width fill
@@ -294,6 +307,9 @@ viewDesktop model =
                         [ width <| px 424
                         , alignLeft
                         , fadeIn
+                        , getEgg False
+                            |> el [ moveRight 60, moveDown 20 ]
+                            |> onRight
                         ]
                     |> when (model.scrollIndex > 8)
                 ]
@@ -327,7 +343,7 @@ viewDesktop model =
 infoText =
     [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
       , newTabLink [ hover, Font.underline ]
-            { url = "https://app.goosefx.io"
+            { url = "https://www.goosefx.io"
             , label = text "GooseFX"
             }
       , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
@@ -358,7 +374,11 @@ viewIncubate isMobile time wallet dropdown =
         hasEgg =
             wallet
                 |> Maybe.andThen (.nfts >> List.head)
-                |> Maybe.Extra.isJust
+                |> isJust
+
+        isStaking =
+            wallet
+                |> unwrap False (.stake >> isJust)
     in
     [ image
         [ width <|
@@ -372,7 +392,7 @@ viewIncubate isMobile time wallet dropdown =
         , centerX
         ]
         { src =
-            if hasEgg then
+            if hasEgg || isStaking then
                 "/egg-present.png"
 
             else
@@ -395,6 +415,63 @@ viewIncubate isMobile time wallet dropdown =
             , moveLeft left
             ]
         |> inFront
+
+
+getEgg : Bool -> Element msg
+getEgg isMobile =
+    let
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        h =
+            if isMobile then
+                35
+
+            else
+                58
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+    in
+    newTabLink [ hover ]
+        { url = "https://form.nestquest.io/"
+        , label =
+            [ image
+                [ width <|
+                    px
+                        (if isMobile then
+                            120
+
+                         else
+                            243
+                        )
+                , centerX
+                ]
+                { src = "/egg-present.png"
+                , description = ""
+                }
+            , gradientText "Get an egg"
+                |> el [ centerX, centerY ]
+                |> el
+                    [ height <| px h
+                    , width <| px w
+                    , Border.width 3
+                    , Border.color wine
+                    , Border.rounded 30
+                    , Background.color sand
+                    , Font.size fnt
+                    ]
+            ]
+                |> column []
+        }
 
 
 bg : Color
@@ -577,10 +654,10 @@ formatAddress addr =
         ++ String.right 4 addr
 
 
-playButton : Maybe String -> Bool -> Bool -> Element Msg
-playButton addr playing dropdown =
+playButton : Bool -> Maybe String -> Bool -> Bool -> Element Msg
+playButton pulse addr playing dropdown =
     [ connectButton False addr dropdown
-    , musicButton playing
+    , musicButton pulse playing
     ]
         |> row
             [ alignTop
@@ -600,10 +677,12 @@ playButton addr playing dropdown =
             ]
 
 
-musicButton : Bool -> Element Msg
-musicButton playing =
+musicButton : Bool -> Bool -> Element Msg
+musicButton pulse playing =
     Input.button
         [ hover
+        , style "animation" "pulse 0.6s ease-in-out infinite alternate"
+            |> whenAttr pulse
         ]
         { onPress = Just PlayTheme
         , label =
@@ -661,11 +740,14 @@ incubateButton isMobile hasEgg =
 withdrawButton : Bool -> Int -> Stake -> Element Msg
 withdrawButton isMobile time stake =
     let
+        stakingEnd =
+            stake.stakingStart
+
         diff =
-            (time - stake.stakingStart) // 60
+            Duration.seconds (toFloat (max 0 (stakingEnd - time)))
 
         canWithdraw =
-            diff >= 43200
+            time >= stake.stakingStart
 
         w =
             if isMobile then
@@ -698,11 +780,70 @@ withdrawButton isMobile time stake =
             else
                 Nothing
         , label =
-            gradientText
-                --"Withdraw"
-                (String.fromInt diff ++ "mins")
+            (if canWithdraw then
+                gradientText "Withdraw"
+
+             else
+                calcCountdown diff
+                    |> gradientText
+            )
                 |> el [ centerX ]
         }
+
+
+calcCountdown : Duration.Duration -> String
+calcCountdown diff =
+    let
+        days =
+            Duration.inDays diff
+
+        daysHours =
+            days
+                |> Duration.days
+                |> Duration.inHours
+
+        daysMins =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inMinutes
+
+        daysSeconds =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inSeconds
+
+        hours =
+            Duration.inMinutes diff
+                - daysMins
+                |> Duration.minutes
+                |> Duration.inHours
+
+        hoursSeconds =
+            hours
+                |> floor
+                |> toFloat
+                |> Duration.hours
+                |> Duration.inSeconds
+
+        mins =
+            Duration.inSeconds diff
+                - daysSeconds
+                - hoursSeconds
+                |> Duration.seconds
+                |> Duration.inMinutes
+    in
+    [ String.fromInt <| floor days
+    , "d: "
+    , String.fromInt <| floor hours
+    , "h: "
+    , String.fromInt <| floor mins
+    , "m"
+    ]
+        |> String.concat
 
 
 connectButton : Bool -> Maybe String -> Bool -> Element Msg
@@ -928,7 +1069,7 @@ fadeIn =
 gooseIcon : Int -> Element msg
 gooseIcon n =
     newTabLink [ hover ]
-        { url = "https://app.goosefx.io"
+        { url = "https://www.goosefx.io"
         , label =
             image
                 [ width <| px n

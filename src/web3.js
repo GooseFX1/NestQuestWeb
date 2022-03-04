@@ -7,7 +7,9 @@ const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
 
 const idl = require("./nestquest.json");
 
-const connection = new web3.Connection("https://api.mainnet-beta.solana.com");
+const connection = new web3.Connection(
+  "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
+);
 
 const provider = new Provider(connection, "processed");
 

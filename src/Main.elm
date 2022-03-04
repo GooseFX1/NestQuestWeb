@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Ports
+import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
 import View exposing (view)
@@ -27,7 +28,7 @@ init flags =
       , dropdown = False
       , time = flags.now // 1000
       , scrollStart = flags.screen.height
-      , incubationSuccess = Nothing
+      , playButtonPulse = True
       }
     , Cmd.none
     )
@@ -37,5 +38,6 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     [ Ports.connectResponse Types.ConnectResponse
     , Ports.stakeResponse Types.StakeResponse
+    , Time.every 10000 Types.Tick
     ]
         |> Sub.batch

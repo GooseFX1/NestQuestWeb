@@ -1,5 +1,7 @@
 module Types exposing (Flags, Model, Msg(..), Stake, State)
 
+import Time exposing (Posix)
+
 
 type alias Model =
     { isMobile : Bool
@@ -10,7 +12,7 @@ type alias Model =
     , dropdown : Bool
     , time : Int
     , scrollStart : Int
-    , incubationSuccess : Maybe Bool
+    , playButtonPulse : Bool
     }
 
 
@@ -50,4 +52,5 @@ type Msg
     | ChangeWallet
     | Incubate
     | Withdraw String
-    | StakeResponse Bool
+    | StakeResponse (Maybe Stake)
+    | Tick Posix
