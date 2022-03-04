@@ -97,25 +97,28 @@ update msg model =
         StakeResponse val ->
             ( { model
                 | wallet =
-                    Maybe.map2
-                        (\wallet stake ->
-                            { wallet
-                                | stake =
-                                    Just
-                                        { stake
-                                            | stakingStart =
-                                                (stake.stakingStart // 1000)
-                                                    + thirtyDaysSeconds
-                                        }
-                            }
-                        )
-                        model.wallet
-                        val
+                    val
+                        |> unwrap
+                            model.wallet
+                            (\stake ->
+                                model.wallet
+                                    |> Maybe.map
+                                        (\wallet ->
+                                            { wallet
+                                                | stake =
+                                                    Just
+                                                        { stake
+                                                            | stakingStart =
+                                                                (stake.stakingStart // 1000)
+                                                                    + thirtyDaysSeconds
+                                                        }
+                                            }
+                                        )
+                            )
               }
             , Cmd.none
             )
 
-        --( { model | incubationSuccess = Just val }, Cmd.none )
         Convert ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
 
