@@ -35,4 +35,4 @@ port stake : String -> Cmd msg
 port connectResponse : (Maybe Types.State -> msg) -> Sub msg
 
 
-port stakeResponse : (Bool -> msg) -> Sub msg
+port stakeResponse : (Maybe Types.Stake -> msg) -> Sub msg

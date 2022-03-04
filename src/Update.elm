@@ -2,12 +2,18 @@ module Update exposing (update)
 
 import Maybe.Extra exposing (unwrap)
 import Ports
+import Time
 import Types exposing (Model, Msg(..))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Tick posix ->
+            ( { model | time = Time.posixToMillis posix // 1000 }
+            , Cmd.none
+            )
+
         Connect ->
             ( { model | walletSelect = not model.walletSelect }
             , Cmd.none
@@ -51,7 +57,6 @@ update msg model =
                     )
 
         Select n ->
-            --( model, Ports.connect () )
             ( model, Ports.connect n )
 
         Scroll scrollDepth ->
@@ -61,17 +66,56 @@ update msg model =
                         mobileCheckpoints model.scrollStart model.scrollIndex scrollDepth
 
                     else
-                        desktopCheckpoints model.scrollIndex scrollDepth
+                        desktopCheckpoints model.scrollStart model.scrollIndex scrollDepth
               }
             , Cmd.none
             )
 
         ConnectResponse val ->
-            ( { model | wallet = val, walletSelect = False }, Cmd.none )
+            ( { model
+                | wallet =
+                    val
+                        |> Maybe.map
+                            (\state ->
+                                { state
+                                    | stake =
+                                        state.stake
+                                            |> Maybe.map
+                                                (\stake ->
+                                                    { stake
+                                                        | stakingStart =
+                                                            stake.stakingStart + thirtyDaysSeconds
+                                                    }
+                                                )
+                                }
+                            )
+                , walletSelect = False
+              }
+            , Cmd.none
+            )
 
         StakeResponse val ->
-            ( { model | incubationSuccess = Just val }, Cmd.none )
+            ( { model
+                | wallet =
+                    Maybe.map2
+                        (\wallet stake ->
+                            { wallet
+                                | stake =
+                                    Just
+                                        { stake
+                                            | stakingStart =
+                                                (stake.stakingStart // 1000)
+                                                    + thirtyDaysSeconds
+                                        }
+                            }
+                        )
+                        model.wallet
+                        val
+              }
+            , Cmd.none
+            )
 
+        --( { model | incubationSuccess = Just val }, Cmd.none )
         Convert ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
 
@@ -82,7 +126,7 @@ update msg model =
                 )
 
             else
-                ( { model | themePlaying = True }
+                ( { model | themePlaying = True, playButtonPulse = False }
                 , Ports.playTheme ()
                 )
 
@@ -130,11 +174,14 @@ mobileCheckpoints screenHeight currentIndex scrollVal =
         currentIndex
 
 
-desktopCheckpoints : Int -> Int -> Int
-desktopCheckpoints currentIndex scrollDepth =
+desktopCheckpoints : Int -> Int -> Int -> Int
+desktopCheckpoints screenHeight currentIndex scrollVal =
     let
         start =
-            1570
+            2450
+
+        scrollDepth =
+            screenHeight + scrollVal
 
         gap =
             120
@@ -168,3 +215,8 @@ desktopCheckpoints currentIndex scrollDepth =
 
     else
         currentIndex
+
+
+thirtyDaysSeconds : Int
+thirtyDaysSeconds =
+    2592000

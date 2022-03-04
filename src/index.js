@@ -91,10 +91,10 @@ app.ports.stake.subscribe((mintId) =>
     }
     const res = await web3.deposit(activeWallet, mintId);
     console.log(res);
-    return app.ports.stakeResponse.send(true);
+    return app.ports.stakeResponse.send({ stakingStart: Date.now(), mintId });
   })().catch((e) => {
     console.error(e);
-    return app.ports.stakeResponse.send(false);
+    return app.ports.stakeResponse.send(null);
   })
 );
 

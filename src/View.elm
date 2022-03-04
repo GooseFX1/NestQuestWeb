@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -40,7 +41,7 @@ view model =
                 |> JD.map (round >> Scroll)
                 |> Html.Events.on "scroll"
                 |> htmlAttribute
-            , playButton (Maybe.map .address model.wallet) model.themePlaying model.dropdown
+            , playButton model.playButtonPulse (Maybe.map .address model.wallet) model.themePlaying model.dropdown
                 |> inFront
                 |> whenAttr (not model.isMobile)
             , walletSelect model.isMobile
@@ -53,7 +54,7 @@ viewMobile : Model -> Element Msg
 viewMobile model =
     [ [ gooseIcon 50
       , connectButton True (Maybe.map .address model.wallet) model.dropdown
-      , musicButton model.themePlaying
+      , musicButton model.playButtonPulse model.themePlaying
       ]
         |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
     , [ image
@@ -84,7 +85,8 @@ viewMobile model =
             , padding 50
             ]
     , image
-        [ width <| px 381
+        [ --width <| px 381
+          cappedWidth 381
         , height <| px 2098
         , centerX
         , [ image
@@ -327,7 +329,7 @@ viewDesktop model =
 infoText =
     [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
       , newTabLink [ hover, Font.underline ]
-            { url = "https://app.goosefx.io"
+            { url = "https://www.goosefx.io"
             , label = text "GooseFX"
             }
       , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
@@ -577,10 +579,10 @@ formatAddress addr =
         ++ String.right 4 addr
 
 
-playButton : Maybe String -> Bool -> Bool -> Element Msg
-playButton addr playing dropdown =
+playButton : Bool -> Maybe String -> Bool -> Bool -> Element Msg
+playButton pulse addr playing dropdown =
     [ connectButton False addr dropdown
-    , musicButton playing
+    , musicButton pulse playing
     ]
         |> row
             [ alignTop
@@ -600,10 +602,12 @@ playButton addr playing dropdown =
             ]
 
 
-musicButton : Bool -> Element Msg
-musicButton playing =
+musicButton : Bool -> Bool -> Element Msg
+musicButton pulse playing =
     Input.button
         [ hover
+        , style "animation" "pulse 0.6s ease-in-out infinite alternate"
+            |> whenAttr pulse
         ]
         { onPress = Just PlayTheme
         , label =
@@ -661,11 +665,14 @@ incubateButton isMobile hasEgg =
 withdrawButton : Bool -> Int -> Stake -> Element Msg
 withdrawButton isMobile time stake =
     let
+        stakingEnd =
+            stake.stakingStart
+
         diff =
-            (time - stake.stakingStart) // 60
+            Duration.seconds (toFloat (max 0 (stakingEnd - time)))
 
         canWithdraw =
-            diff >= 43200
+            time >= stake.stakingStart
 
         w =
             if isMobile then
@@ -698,9 +705,46 @@ withdrawButton isMobile time stake =
             else
                 Nothing
         , label =
-            gradientText
-                --"Withdraw"
-                (String.fromInt diff ++ "mins")
+            (if canWithdraw then
+                gradientText "Withdraw"
+
+             else
+                let
+                    days =
+                        Duration.inDays diff
+
+                    daysHours =
+                        days
+                            |> Duration.days
+                            |> Duration.inHours
+
+                    daysMins =
+                        days
+                            |> Duration.days
+                            |> Duration.inMinutes
+
+                    hours =
+                        Duration.inHours diff - daysHours
+
+                    hoursMins =
+                        hours
+                            |> Duration.hours
+                            |> Duration.inMinutes
+
+                    mins =
+                        Duration.inMinutes diff - daysMins - hoursMins
+                in
+                [ String.fromInt <| round days
+                , "d: "
+                , String.fromInt <| round hours
+                , "h: "
+                , String.fromInt <| round mins
+                , "m"
+                ]
+                    |> String.concat
+                    |> gradientText
+             --gradientText (String.fromInt diff ++ "mins")
+            )
                 |> el [ centerX ]
         }
 
@@ -928,7 +972,7 @@ fadeIn =
 gooseIcon : Int -> Element msg
 gooseIcon n =
     newTabLink [ hover ]
-        { url = "https://app.goosefx.io"
+        { url = "https://www.goosefx.io"
         , label =
             image
                 [ width <| px n
