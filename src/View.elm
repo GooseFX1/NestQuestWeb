@@ -11,7 +11,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Maybe.Extra exposing (unwrap)
+import Maybe.Extra exposing (isJust, unwrap)
 import Types exposing (Model, Msg(..), Stake, State)
 import View.Img as Img
 
@@ -374,7 +374,11 @@ viewIncubate isMobile time wallet dropdown =
         hasEgg =
             wallet
                 |> Maybe.andThen (.nfts >> List.head)
-                |> Maybe.Extra.isJust
+                |> isJust
+
+        isStaking =
+            wallet
+                |> unwrap False (.stake >> isJust)
     in
     [ image
         [ width <|
@@ -388,7 +392,7 @@ viewIncubate isMobile time wallet dropdown =
         , centerX
         ]
         { src =
-            if hasEgg then
+            if hasEgg || isStaking then
                 "/egg-present.png"
 
             else
@@ -780,44 +784,66 @@ withdrawButton isMobile time stake =
                 gradientText "Withdraw"
 
              else
-                let
-                    days =
-                        Duration.inDays diff
-
-                    daysHours =
-                        days
-                            |> Duration.days
-                            |> Duration.inHours
-
-                    daysMins =
-                        days
-                            |> Duration.days
-                            |> Duration.inMinutes
-
-                    hours =
-                        Duration.inHours diff - daysHours
-
-                    hoursMins =
-                        hours
-                            |> Duration.hours
-                            |> Duration.inMinutes
-
-                    mins =
-                        Duration.inMinutes diff - daysMins - hoursMins
-                in
-                [ String.fromInt <| round days
-                , "d: "
-                , String.fromInt <| round hours
-                , "h: "
-                , String.fromInt <| round mins
-                , "m"
-                ]
-                    |> String.concat
+                calcCountdown diff
                     |> gradientText
-             --gradientText (String.fromInt diff ++ "mins")
             )
                 |> el [ centerX ]
         }
+
+
+calcCountdown : Duration.Duration -> String
+calcCountdown diff =
+    let
+        days =
+            Duration.inDays diff
+
+        daysHours =
+            days
+                |> Duration.days
+                |> Duration.inHours
+
+        daysMins =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inMinutes
+
+        daysSeconds =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inSeconds
+
+        hours =
+            Duration.inMinutes diff
+                - daysMins
+                |> Duration.minutes
+                |> Duration.inHours
+
+        hoursSeconds =
+            hours
+                |> floor
+                |> toFloat
+                |> Duration.hours
+                |> Duration.inSeconds
+
+        mins =
+            Duration.inSeconds diff
+                - daysSeconds
+                - hoursSeconds
+                |> Duration.seconds
+                |> Duration.inMinutes
+    in
+    [ String.fromInt <| floor days
+    , "d: "
+    , String.fromInt <| floor hours
+    , "h: "
+    , String.fromInt <| floor mins
+    , "m"
+    ]
+        |> String.concat
 
 
 connectButton : Bool -> Maybe String -> Bool -> Element Msg
