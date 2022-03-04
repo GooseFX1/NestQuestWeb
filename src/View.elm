@@ -26,12 +26,17 @@ view model =
     )
         |> Element.layoutWith
             { options =
-                [ Element.focusStyle
+                Element.focusStyle
                     { borderColor = Nothing
                     , backgroundColor = Nothing
                     , shadow = Nothing
                     }
-                ]
+                    :: (if model.isMobile then
+                            [ Element.noHover ]
+
+                        else
+                            []
+                       )
             }
             [ width fill
             , height fill
@@ -147,7 +152,13 @@ viewMobile model =
                 |> when (model.scrollIndex > 7)
                 |> el [ alignRight, alignTop ]
             ]
-                |> row [ spacing 10, width fill ]
+                |> row
+                    [ spacing 10
+                    , width fill
+                    , getEgg True
+                        |> el [ moveRight 210, moveDown 140 ]
+                        |> inFront
+                    ]
           ]
             |> column
                 [ width fill
@@ -296,6 +307,9 @@ viewDesktop model =
                         [ width <| px 424
                         , alignLeft
                         , fadeIn
+                        , getEgg False
+                            |> el [ moveRight 60, moveDown 20 ]
+                            |> onRight
                         ]
                     |> when (model.scrollIndex > 8)
                 ]
@@ -397,6 +411,63 @@ viewIncubate isMobile time wallet dropdown =
             , moveLeft left
             ]
         |> inFront
+
+
+getEgg : Bool -> Element msg
+getEgg isMobile =
+    let
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        h =
+            if isMobile then
+                35
+
+            else
+                58
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+    in
+    newTabLink [ hover ]
+        { url = "https://form.nestquest.io/"
+        , label =
+            [ image
+                [ width <|
+                    px
+                        (if isMobile then
+                            120
+
+                         else
+                            243
+                        )
+                , centerX
+                ]
+                { src = "/egg-present.png"
+                , description = ""
+                }
+            , gradientText "Get an egg"
+                |> el [ centerX, centerY ]
+                |> el
+                    [ height <| px h
+                    , width <| px w
+                    , Border.width 3
+                    , Border.color wine
+                    , Border.rounded 30
+                    , Background.color sand
+                    , Font.size fnt
+                    ]
+            ]
+                |> column []
+        }
 
 
 bg : Color
