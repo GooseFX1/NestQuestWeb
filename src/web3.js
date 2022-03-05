@@ -134,20 +134,23 @@ const fetchOwned = async (wallet) => {
   );
 
   const tokens = tokensRaw.value.filter(
-    (tk) => tk.account.data.parsed.info.tokenAmount.uiAmount === 1
+    (tk) =>
+      tk.account.data.parsed.info.tokenAmount.uiAmount === 1 &&
+      tk.account.data.parsed.info.tokenAmount.decimals === 0
   );
 
-  if (tokens.length == 0) {
+  if (tokens.length === 0) {
     return [];
   }
 
   const metadata = await Promise.all(
-    tokens
-      .map((x) => fetchMeta(x.account.data.parsed.info.mint).catch(() => null))
-      .filter((x) => x)
+    tokens.map((x) =>
+      fetchMeta(x.account.data.parsed.info.mint).catch(() => null)
+    )
   );
 
   return metadata
+    .filter((x) => x)
     .filter((md) => md.updateAuthority === UPDATE_AUTH)
     .map((md) => md.mint);
 };
