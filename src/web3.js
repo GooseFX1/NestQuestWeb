@@ -31,8 +31,8 @@ const launch = async (wallet, transaction) => {
 const fetchMeta = async (mintId) => {
   const metadata = await Metadata.getPDA(mintId);
   const metadataInfo = await Account.getInfo(connection, metadata);
-  const { data } = new Metadata(metadata, metadataInfo);
-  return data;
+  const res = new Metadata(metadata, metadataInfo);
+  return res.data || null;
 };
 
 const fetchStake = async (wallet) => {
@@ -134,18 +134,23 @@ const fetchOwned = async (wallet) => {
   );
 
   const tokens = tokensRaw.value.filter(
-    (tk) => tk.account.data.parsed.info.tokenAmount.uiAmount === 1
+    (tk) =>
+      tk.account.data.parsed.info.tokenAmount.uiAmount === 1 &&
+      tk.account.data.parsed.info.tokenAmount.decimals === 0
   );
 
-  if (tokens.length == 0) {
+  if (tokens.length === 0) {
     return [];
   }
 
   const metadata = await Promise.all(
-    tokens.map((x) => fetchMeta(x.account.data.parsed.info.mint))
+    tokens.map((x) =>
+      fetchMeta(x.account.data.parsed.info.mint).catch(() => null)
+    )
   );
 
   return metadata
+    .filter((x) => x)
     .filter((md) => md.updateAuthority === UPDATE_AUTH)
     .map((md) => md.mint);
 };
