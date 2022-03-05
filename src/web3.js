@@ -31,8 +31,8 @@ const launch = async (wallet, transaction) => {
 const fetchMeta = async (mintId) => {
   const metadata = await Metadata.getPDA(mintId);
   const metadataInfo = await Account.getInfo(connection, metadata);
-  const { data } = new Metadata(metadata, metadataInfo);
-  return data;
+  const res = new Metadata(metadata, metadataInfo);
+  return res.data || null;
 };
 
 const fetchStake = async (wallet) => {
@@ -142,7 +142,9 @@ const fetchOwned = async (wallet) => {
   }
 
   const metadata = await Promise.all(
-    tokens.map((x) => fetchMeta(x.account.data.parsed.info.mint))
+    tokens
+      .map((x) => fetchMeta(x.account.data.parsed.info.mint).catch(() => null))
+      .filter((x) => x)
   );
 
   return metadata
