@@ -62,17 +62,21 @@ viewMobile model =
       , musicButton model.playButtonPulse model.themePlaying
       ]
         |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
-    , [ image
-            [ centerX
-            , width <|
-                if model.isMobile then
-                    fill
+    , [ [ [ viewSocials
+                |> el [ centerX ]
+          , image
+                [ centerX
+                , width <|
+                    if model.isMobile then
+                        fill
 
-                else
-                    px 500
-            ]
-            { src = "/logo.png", description = "" }
-      , [ image
+                    else
+                        px 500
+                ]
+                { src = "/logo.png", description = "" }
+          ]
+            |> column [ width fill, spacing 25 ]
+        , image
             [ centerX
             , width <|
                 if model.isMobile then
@@ -87,7 +91,7 @@ viewMobile model =
       ]
         |> column
             [ width fill
-            , padding 50
+            , paddingXY 50 0
             ]
     , image
         [ --width <| px 381
@@ -197,6 +201,9 @@ viewDesktop model =
             [ width fill
             , padding 50
             , spacing 40
+            , viewSocials
+                |> el [ alignLeft, alignTop, paddingXY 20 0 ]
+                |> inFront
             ]
     , image
         [ centerX
@@ -910,7 +917,13 @@ connectButton isMobile addr dropdown =
                 , Border.rounded 10
                 , Border.width 3
                 , Border.color wine
-                , Font.size 19
+                , Font.size
+                    (if isMobile then
+                        14
+
+                     else
+                        19
+                    )
                 ]
             |> below
             |> whenAttr dropdown
@@ -1076,3 +1089,24 @@ gooseIcon n =
                 ]
                 { src = "/brand.svg", description = "" }
         }
+
+
+viewSocials : Element msg
+viewSocials =
+    [ ( "discord", "https://discord.gg/cDEPXpY26q" )
+    , ( "medium", "https://medium.com/goosefx" )
+    , ( "telegram", "https://www.t.me/goosefx" )
+    , ( "twitter", "https://www.twitter.com/GooseFX1" )
+    ]
+        |> List.map
+            (\( tag, url ) ->
+                newTabLink [ hover ]
+                    { url = url
+                    , label =
+                        image [ width <| px 40, height <| px 40 ]
+                            { src = "/icons/" ++ tag ++ ".svg"
+                            , description = ""
+                            }
+                    }
+            )
+        |> row [ spacing 20 ]
