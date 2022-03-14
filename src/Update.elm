@@ -32,29 +32,21 @@ update msg model =
             )
 
         Disconnect ->
-            model.wallet
-                |> unwrap ( model, Cmd.none )
-                    (\state ->
-                        ( { model
-                            | wallet = Nothing
-                            , dropdown = False
-                          }
-                        , Ports.disconnect ()
-                        )
-                    )
+            ( { model
+                | wallet = Nothing
+                , dropdown = False
+              }
+            , Ports.disconnect ()
+            )
 
         ChangeWallet ->
-            model.wallet
-                |> unwrap ( model, Cmd.none )
-                    (\state ->
-                        ( { model
-                            | wallet = Nothing
-                            , dropdown = False
-                            , walletSelect = True
-                          }
-                        , Ports.disconnect ()
-                        )
-                    )
+            ( { model
+                | wallet = Nothing
+                , dropdown = False
+                , walletSelect = True
+              }
+            , Ports.disconnect ()
+            )
 
         Select n ->
             ( model, Ports.connect n )

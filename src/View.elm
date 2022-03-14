@@ -352,6 +352,7 @@ viewDesktop model =
             ]
 
 
+infoText : List (Element msg)
 infoText =
     [ [ text "NestQuest is an interactive platform tutorial designed to reward participants for using the "
       , newTabLink [ hover, Font.underline ]
@@ -501,11 +502,6 @@ sand =
     rgb255 233 211 148
 
 
-black : Color
-black =
-    rgb255 0 0 0
-
-
 white : Color
 white =
     rgb255 255 255 255
@@ -527,13 +523,6 @@ meriendaBold : Attribute msg
 meriendaBold =
     Font.family
         [ Font.typeface "Merienda Bold"
-        ]
-
-
-blackChancery : Attribute msg
-blackChancery =
-    Font.family
-        [ Font.typeface "Black Chancery"
         ]
 
 
@@ -808,11 +797,6 @@ calcCountdown diff =
     let
         days =
             Duration.inDays diff
-
-        daysHours =
-            days
-                |> Duration.days
-                |> Duration.inHours
 
         daysMins =
             days
