@@ -57,14 +57,12 @@ view model =
 
 viewMobile : Model -> Element Msg
 viewMobile model =
-    [ [ gooseIcon 50
-      , connectButton True (Maybe.map .address model.wallet) model.dropdown
-      , musicButton model.playButtonPulse model.themePlaying
-      ]
-        |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
-    , [ [ [ viewSocials
-                |> el [ centerX ]
-          , image
+    [ [ [ gooseIcon 50
+        , connectButton True (Maybe.map .address model.wallet) model.dropdown
+        , musicButton model.playButtonPulse model.themePlaying
+        ]
+            |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
+      , [ [ image
                 [ centerX
                 , width <|
                     if model.isMobile then
@@ -74,275 +72,282 @@ viewMobile model =
                         px 500
                 ]
                 { src = "/logo.png", description = "" }
-          ]
-            |> column [ width fill, spacing 25 ]
-        , image
-            [ centerX
-            , width <|
-                if model.isMobile then
-                    fill
+          , image
+                [ centerX
+                , width <|
+                    if model.isMobile then
+                        fill
 
-                else
-                    px 500
-            ]
-            { src = "/slogan.png", description = "" }
-        ]
-            |> column [ width fill, spacing 15 ]
-      ]
-        |> column
-            [ width fill
-            , paddingXY 50 0
-            ]
-    , image
-        [ --width <| px 381
-          cappedWidth 381
-        , height <| px 2098
-        , centerX
-        , [ image
-                [ height <| px 480
-                , width <| px 355
-                , centerX
-                , infoText
-                    |> column
-                        [ Font.color wine
-                        , Font.center
-                        , meriendaBold
-                        , spacing 5
-                        , Font.size 14
-                        , width <| px 308
-                        , moveDown 150
-                        , centerX
-                        ]
-                    |> inFront
+                    else
+                        px 500
                 ]
-                { src = "/parchment-mobile.svg"
-                , description = ""
-                }
-          , el [ height <| px 30, width fill ] none
-          , boxM body1
-                |> when (model.scrollIndex > 0)
-          , [ lineImg 1
-                |> when (model.scrollIndex > 1)
-                |> el [ alignLeft, alignTop ]
-            , boxM body2
-                |> bump
-                |> when (model.scrollIndex > 2)
-            ]
-                |> row [ spacing 10, width fill ]
-          , [ boxM body3
-                |> bump
-                |> when (model.scrollIndex > 4)
-                -- Prevent fadeIn bug
-                |> el []
-            , lineImg 2
-                |> when (model.scrollIndex > 3)
-                |> el [ alignRight, alignTop ]
-            ]
-                |> row [ spacing 10, width fill ]
-          , [ lineImg 3
-                |> when (model.scrollIndex > 5)
-                |> el [ alignLeft, alignTop ]
-            , boxM body4
-                |> bump
-                |> when (model.scrollIndex > 6)
-            ]
-                |> row [ spacing 10, width fill ]
-          , [ boxM body5
-                |> bump
-                |> when (model.scrollIndex > 8)
-                -- Prevent fadeIn bug
-                |> el []
-            , lineImg 4
-                |> when (model.scrollIndex > 7)
-                |> el [ alignRight, alignTop ]
-            ]
-                |> row
-                    [ spacing 10
-                    , width fill
-                    , getEgg True
-                        |> el [ moveRight 210, moveDown 140 ]
-                        |> inFront
-                    ]
+                { src = "/slogan.png", description = "" }
           ]
+            |> column [ width fill, spacing 15 ]
+        ]
             |> column
                 [ width fill
-                , paddingXY 20 0
-                , moveDown 260
-                , spacing 15
+                , padding 50
                 ]
-            |> inFront
-        , viewIncubate True model.time model.wallet model.dropdown
-        ]
-        { src = "/world-mobile.png", description = "" }
-    ]
+      , image
+            [ --width <| px 381
+              cappedWidth 381
+            , height <| px 2098
+            , centerX
+            , [ image
+                    [ height <| px 480
+                    , width <| px 355
+                    , centerX
+                    , infoText
+                        |> column
+                            [ Font.color wine
+                            , Font.center
+                            , meriendaBold
+                            , spacing 5
+                            , Font.size 14
+                            , width <| px 308
+                            , moveDown 150
+                            , centerX
+                            ]
+                        |> inFront
+                    ]
+                    { src = "/parchment-mobile.svg"
+                    , description = ""
+                    }
+              , el [ height <| px 30, width fill ] none
+              , boxM body1
+                    |> when (model.scrollIndex > 0)
+              , [ lineImg 1
+                    |> when (model.scrollIndex > 1)
+                    |> el [ alignLeft, alignTop ]
+                , boxM body2
+                    |> bump
+                    |> when (model.scrollIndex > 2)
+                ]
+                    |> row [ spacing 10, width fill ]
+              , [ boxM body3
+                    |> bump
+                    |> when (model.scrollIndex > 4)
+                    -- Prevent fadeIn bug
+                    |> el []
+                , lineImg 2
+                    |> when (model.scrollIndex > 3)
+                    |> el [ alignRight, alignTop ]
+                ]
+                    |> row [ spacing 10, width fill ]
+              , [ lineImg 3
+                    |> when (model.scrollIndex > 5)
+                    |> el [ alignLeft, alignTop ]
+                , boxM body4
+                    |> bump
+                    |> when (model.scrollIndex > 6)
+                ]
+                    |> row [ spacing 10, width fill ]
+              , [ boxM body5
+                    |> bump
+                    |> when (model.scrollIndex > 8)
+                    -- Prevent fadeIn bug
+                    |> el []
+                , lineImg 4
+                    |> when (model.scrollIndex > 7)
+                    |> el [ alignRight, alignTop ]
+                ]
+                    |> row
+                        [ spacing 10
+                        , width fill
+                        , getEgg True
+                            |> el [ moveRight 210, moveDown 140 ]
+                            |> inFront
+                        ]
+              ]
+                |> column
+                    [ width fill
+                    , paddingXY 20 0
+                    , moveDown 260
+                    , spacing 15
+                    ]
+                |> inFront
+            , viewIncubate True model.time model.wallet model.dropdown
+            ]
+            { src = "/world-mobile.png", description = "" }
+      ]
         |> column
             [ spacing 20
             , width fill
+            , height fill
+            ]
+    , viewFooter
+    ]
+        |> column
+            [ width fill
             , height fill
             ]
 
 
 viewDesktop : Model -> Element Msg
 viewDesktop model =
-    [ gooseIcon 100
-        |> el [ padding 20 ]
-    , [ image
+    [ [ gooseIcon 100
+            |> el [ padding 20 ]
+      , [ image
             [ centerX
             , width <| px 276
             ]
             { src = "/logo.png", description = "" }
-      , image
+        , image
             [ centerX
             , width <| px 639
             ]
             { src = "/slogan.png", description = "" }
-      ]
-        |> column
-            [ width fill
-            , padding 50
-            , spacing 40
-            , viewSocials
-                |> el [ alignLeft, alignTop, paddingXY 20 0 ]
-                |> inFront
-            ]
-    , image
-        [ centerX
-        , width <| px 1401
-        , height <| px 3155
-        , image
-            [ centerX
-            , moveDown 1048
-            , width <| px 1311
-            , height <| px 2029
-            , [ image [ height <| px 97, width <| px 572, centerX ]
-                    { src = "/prompt.png"
-                    , description = ""
-                    }
-              , infoText
-                    |> column
-                        [ Font.color wine
-                        , Font.center
-                        , cappedWidth 855
-                        , centerX
-                        , meriendaBold
-                        , paddingXY 0 30
-                        , spacing 5
-                        , Font.size 22
-                        ]
-              , image [ height <| px 69, width <| px 234, centerX ]
-                    { src = "/roadmap.svg"
-                    , description = ""
-                    }
-              , [ viewBox body1 False
-                    |> el
-                        [ width <| px 424
-                        , alignLeft
-                        , fadeIn
-                        , image
-                            [ height <| px 176
-                            , width <| px 587
-                            , moveRight 200
-                            , moveUp 50
-                            , fadeIn
-                            ]
-                            { src = "/lines/1.png"
-                            , description = ""
-                            }
-                            |> when (model.scrollIndex > 1)
-                            |> below
-                        ]
-                    |> when (model.scrollIndex > 0)
-                , viewBox body2 False
-                    |> el
-                        [ width <| px 424
-                        , alignRight
-                        , fadeIn
-                        , image
-                            [ height <| px 185
-                            , width <| px 550
-                            , moveLeft 320
-                            , moveUp 75
-                            , fadeIn
-                            ]
-                            { src = "/lines/2.png"
-                            , description = ""
-                            }
-                            |> when (model.scrollIndex > 3)
-                            |> below
-                        ]
-                    |> when (model.scrollIndex > 2)
-                , viewBox body3 False
-                    |> el
-                        [ width <| px 424
-                        , alignLeft
-                        , fadeIn
-                        , image
-                            [ height <| px 152
-                            , width <| px 491
-                            , moveRight 250
-                            , moveUp 60
-                            , fadeIn
-                            ]
-                            { src = "/lines/3.png"
-                            , description = ""
-                            }
-                            |> when (model.scrollIndex > 5)
-                            |> below
-                        ]
-                    |> when (model.scrollIndex > 4)
-                , viewBox body4 False
-                    |> el
-                        [ width <| px 424
-                        , alignRight
-                        , fadeIn
-                        , image
-                            [ height <| px 127
-                            , width <| px 478
-                            , moveLeft 300
-                            , moveUp 50
-                            , fadeIn
-                            ]
-                            { src = "/lines/4.png"
-                            , description = ""
-                            }
-                            |> when (model.scrollIndex > 7)
-                            |> below
-                        ]
-                    |> when (model.scrollIndex > 6)
-                , viewBox body5 False
-                    |> el
-                        [ width <| px 424
-                        , alignLeft
-                        , fadeIn
-                        , getEgg False
-                            |> el [ moveRight 60, moveDown 20 ]
-                            |> onRight
-                        ]
-                    |> when (model.scrollIndex > 8)
-                ]
-                    |> column
-                        [ spacing 20
-                        , width fill
-                        , paddingXY 100 0
-                        ]
-              ]
-                |> column
-                    [ width fill
-                    , height fill
-                    , paddingXY 0 150
-                    , spacing 40
-                    ]
-                |> inFront
-            ]
-            { src = "/parchment-desktop.svg", description = "" }
-            |> inFront
-        , viewIncubate False model.time model.wallet model.dropdown
         ]
-        { src = "/world-desktop.png", description = "" }
-    ]
+            |> column
+                [ width fill
+                , padding 50
+                , spacing 40
+                ]
+      , image
+            [ centerX
+            , width <| px 1401
+            , height <| px 3155
+            , image
+                [ centerX
+                , moveDown 1048
+                , width <| px 1311
+                , height <| px 2029
+                , [ image [ height <| px 97, width <| px 572, centerX ]
+                        { src = "/prompt.png"
+                        , description = ""
+                        }
+                  , infoText
+                        |> column
+                            [ Font.color wine
+                            , Font.center
+                            , cappedWidth 855
+                            , centerX
+                            , meriendaBold
+                            , paddingXY 0 30
+                            , spacing 5
+                            , Font.size 22
+                            ]
+                  , image [ height <| px 69, width <| px 234, centerX ]
+                        { src = "/roadmap.svg"
+                        , description = ""
+                        }
+                  , [ viewBox body1 False
+                        |> el
+                            [ width <| px 424
+                            , alignLeft
+                            , fadeIn
+                            , image
+                                [ height <| px 176
+                                , width <| px 587
+                                , moveRight 200
+                                , moveUp 50
+                                , fadeIn
+                                ]
+                                { src = "/lines/1.png"
+                                , description = ""
+                                }
+                                |> when (model.scrollIndex > 1)
+                                |> below
+                            ]
+                        |> when (model.scrollIndex > 0)
+                    , viewBox body2 False
+                        |> el
+                            [ width <| px 424
+                            , alignRight
+                            , fadeIn
+                            , image
+                                [ height <| px 185
+                                , width <| px 550
+                                , moveLeft 320
+                                , moveUp 75
+                                , fadeIn
+                                ]
+                                { src = "/lines/2.png"
+                                , description = ""
+                                }
+                                |> when (model.scrollIndex > 3)
+                                |> below
+                            ]
+                        |> when (model.scrollIndex > 2)
+                    , viewBox body3 False
+                        |> el
+                            [ width <| px 424
+                            , alignLeft
+                            , fadeIn
+                            , image
+                                [ height <| px 152
+                                , width <| px 491
+                                , moveRight 250
+                                , moveUp 60
+                                , fadeIn
+                                ]
+                                { src = "/lines/3.png"
+                                , description = ""
+                                }
+                                |> when (model.scrollIndex > 5)
+                                |> below
+                            ]
+                        |> when (model.scrollIndex > 4)
+                    , viewBox body4 False
+                        |> el
+                            [ width <| px 424
+                            , alignRight
+                            , fadeIn
+                            , image
+                                [ height <| px 127
+                                , width <| px 478
+                                , moveLeft 300
+                                , moveUp 50
+                                , fadeIn
+                                ]
+                                { src = "/lines/4.png"
+                                , description = ""
+                                }
+                                |> when (model.scrollIndex > 7)
+                                |> below
+                            ]
+                        |> when (model.scrollIndex > 6)
+                    , viewBox body5 False
+                        |> el
+                            [ width <| px 424
+                            , alignLeft
+                            , fadeIn
+                            , getEgg False
+                                |> el [ moveRight 60, moveDown 20 ]
+                                |> onRight
+                            ]
+                        |> when (model.scrollIndex > 8)
+                    ]
+                        |> column
+                            [ spacing 20
+                            , width fill
+                            , paddingXY 100 0
+                            ]
+                  ]
+                    |> column
+                        [ width fill
+                        , height fill
+                        , paddingXY 0 150
+                        , spacing 40
+                        ]
+                    |> inFront
+                ]
+                { src = "/parchment-desktop.svg", description = "" }
+                |> inFront
+            , viewIncubate False model.time model.wallet model.dropdown
+            ]
+            { src = "/world-desktop.png", description = "" }
+      ]
         |> column
             [ spacing 20
             , width fill
+            , height fill
+            ]
+    , viewFooter
+    ]
+        |> column
+            [ width fill
             , height fill
             ]
 
@@ -1053,12 +1058,17 @@ walletPill n isMobile =
 
 
 gradientText : String -> Element msg
-gradientText txt =
+gradientText =
+    gradientTextHelper 1.2
+
+
+gradientTextHelper : Float -> String -> Element msg
+gradientTextHelper stroke txt =
     [ Html.text txt ]
         |> Html.div
             [ Html.Attributes.style
                 "-webkit-text-stroke"
-                "1.2px rgb(118, 78, 1)"
+                (String.fromFloat stroke ++ "px rgb(118, 78, 1)")
             , Html.Attributes.style
                 "background-image"
                 """linear-gradient(
@@ -1093,20 +1103,44 @@ gooseIcon n =
 
 viewSocials : Element msg
 viewSocials =
-    [ ( "discord", "https://discord.gg/cDEPXpY26q" )
-    , ( "medium", "https://medium.com/goosefx" )
-    , ( "telegram", "https://www.t.me/goosefx" )
-    , ( "twitter", "https://www.twitter.com/GooseFX1" )
+    [ ( "Discord", "https://discord.gg/cDEPXpY26q" )
+    , ( "Medium", "https://medium.com/goosefx" )
+    , ( "Telegram", "https://www.t.me/goosefx" )
+    , ( "Twitter", "https://www.twitter.com/GooseFX1" )
     ]
         |> List.map
             (\( tag, url ) ->
-                newTabLink [ hover ]
+                newTabLink
+                    [ hover
+                    , Html.Attributes.title tag
+                        |> htmlAttribute
+                    ]
                     { url = url
                     , label =
                         image [ width <| px 40, height <| px 40 ]
-                            { src = "/icons/" ++ tag ++ ".svg"
+                            { src = "/icons/" ++ String.toLower tag ++ ".svg"
                             , description = ""
                             }
                     }
             )
         |> row [ spacing 20 ]
+
+
+viewFooter : Element msg
+viewFooter =
+    [ el [ width fill, height <| px 1, Background.color white ] none
+    , [ gradientTextHelper 0.9 "Follow us on:"
+            |> el [ centerX, Font.size 24 ]
+      , viewSocials
+            |> el [ centerX ]
+      , text "Copyright © 2022 Goose Labs, Inc. All rights reserved."
+            |> el
+                [ centerX
+                , meriendaRegular
+                , Font.size 11
+                , Font.color white
+                ]
+      ]
+        |> column [ spacing 20, centerX, padding 30 ]
+    ]
+        |> column [ width fill ]
