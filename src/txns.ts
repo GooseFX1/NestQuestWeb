@@ -1,8 +1,11 @@
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, Provider, Program, utils } from "@project-serum/anchor";
+import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
+import { deposit as depositFn } from "./codegen/instructions/deposit";
+import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
+import { PROGRAM_ID } from "./codegen/programId";
 
-const PROGRAM_ID = "NQDKVecDDY3espZ7LynBrFSy8fTr8VrTrXQ7PRBMK1a";
 const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
 
 const idl = require("./nestquest.json");
@@ -11,16 +14,22 @@ const connection = new web3.Connection(
   "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
 );
 
-const provider = new Provider(connection, "processed");
+// @ts-ignore
+const provider = new Provider(connection);
 
-const program = new Program(idl, new web3.PublicKey(PROGRAM_ID), provider);
+const program = new Program(idl, PROGRAM_ID, provider);
 
-const launch = async (wallet, transaction) => {
+const launch = async (
+  wallet: BaseSignerWalletAdapter,
+  transaction: web3.Transaction
+) => {
   const { blockhash } = await connection.getRecentBlockhash();
 
   /* eslint-disable fp/no-mutation */
   transaction.recentBlockhash = blockhash;
-  transaction.feePayer = wallet.publicKey;
+  if (wallet.publicKey) {
+    transaction.feePayer = wallet.publicKey;
+  }
   /* eslint-enable fp/no-mutation */
 
   const signedTransaction = await wallet.signTransaction(transaction);
@@ -28,17 +37,21 @@ const launch = async (wallet, transaction) => {
   return connection.sendRawTransaction(signedTransaction.serialize());
 };
 
-const fetchMeta = async (mintId) => {
+const fetchMeta = async (mintId: web3.PublicKey) => {
   const metadata = await Metadata.getPDA(mintId);
   const metadataInfo = await Account.getInfo(connection, metadata);
   const res = new Metadata(metadata, metadataInfo);
   return res.data || null;
 };
 
-const fetchStake = async (wallet) => {
+const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
+
   const [stakeAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("stake"), wallet.publicKey.toBytes()],
-    program.programId
+    PROGRAM_ID
   );
 
   const stake = await program.account.stake.fetchNullable(stakeAddr);
@@ -48,7 +61,7 @@ const fetchStake = async (wallet) => {
 
   const [vaultAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("vault"), stake.mintId.toBuffer()],
-    program.programId
+    PROGRAM_ID
   );
 
   const balance = await connection.getTokenAccountBalance(vaultAddr);
@@ -60,72 +73,99 @@ const fetchStake = async (wallet) => {
   return stake;
 };
 
-const withdraw = async (wallet, mintId) => {
+const withdraw = async (
+  wallet: BaseSignerWalletAdapter,
+  mintId: web3.PublicKey
+) => {
   const mintKey = new web3.PublicKey(mintId);
+
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
 
   const [stakeAddr, stakeBump] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-    program.programId
+    PROGRAM_ID
   );
 
   const [vaultAddr, vaultBump] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("vault"), mintKey.toBuffer()],
-    program.programId
+    PROGRAM_ID
   );
 
-  const transaction = await program.transaction.withdraw(vaultBump, stakeBump, {
-    accounts: {
-      payer: wallet.publicKey,
-      vault: vaultAddr,
-      tokenAccount: await utils.token.associatedAddress({
-        mint: mintKey,
-        owner: wallet.publicKey,
-      }),
-      stake: stakeAddr,
-      systemProgram: web3.SystemProgram.programId,
-      tokenProgram: utils.token.TOKEN_PROGRAM_ID,
-    },
-  });
+  const args = { vaultBump, stakeBump };
+
+  const accounts = {
+    payer: wallet.publicKey,
+    vault: vaultAddr,
+    tokenAccount: await utils.token.associatedAddress({
+      mint: mintKey,
+      owner: wallet.publicKey,
+    }),
+    stake: stakeAddr,
+    systemProgram: web3.SystemProgram.programId,
+    tokenProgram: utils.token.TOKEN_PROGRAM_ID,
+  };
+
+  const ix = withdrawFn(args, accounts);
+
+  const transaction = new web3.Transaction();
+  transaction.add(ix);
 
   return launch(wallet, transaction);
 };
 
-const deposit = async (wallet, mintId) => {
+const deposit = async (
+  wallet: BaseSignerWalletAdapter,
+  mintId: web3.PublicKey
+) => {
   const mintKey = new web3.PublicKey(mintId);
 
   const [vaultAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("vault"), mintKey.toBuffer()],
-    program.programId
+    PROGRAM_ID
   );
+
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
 
   const [stakeAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-    program.programId
+    PROGRAM_ID
   );
 
   const metadataAddr = await Metadata.getPDA(mintId);
 
-  const transaction = await program.transaction.deposit({
-    accounts: {
-      payer: wallet.publicKey,
-      vault: vaultAddr,
-      systemProgram: web3.SystemProgram.programId,
-      tokenAccount: await utils.token.associatedAddress({
-        mint: mintKey,
-        owner: wallet.publicKey,
-      }),
-      tokenProgram: utils.token.TOKEN_PROGRAM_ID,
-      mint: mintId,
-      rent: web3.SYSVAR_RENT_PUBKEY,
-      meta: metadataAddr,
-      stake: stakeAddr,
-    },
-  });
+  const accounts = {
+    payer: wallet.publicKey,
+    vault: vaultAddr,
+    tokenAccount: await utils.token.associatedAddress({
+      mint: mintKey,
+      owner: wallet.publicKey,
+    }),
+    mint: mintId,
+    meta: metadataAddr,
+    stake: stakeAddr,
+    tokenProgram: utils.token.TOKEN_PROGRAM_ID,
+    systemProgram: web3.SystemProgram.programId,
+    rent: web3.SYSVAR_RENT_PUBKEY,
+  };
+
+  const transaction = new web3.Transaction();
+
+  const ix = depositFn(accounts);
+
+  transaction.add(ix);
 
   return launch(wallet, transaction);
 };
 
-const fetchOwned = async (wallet) => {
+const fetchOwned = async (wallet: BaseSignerWalletAdapter) => {
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
+
   const tokensRaw = await connection.getParsedTokenAccountsByOwner(
     wallet.publicKey,
     {

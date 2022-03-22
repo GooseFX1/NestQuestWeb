@@ -22,7 +22,7 @@ module.exports = (env) => {
 
   return {
     mode: devMode ? "development" : "production",
-    entry: "./src/index.js",
+    entry: "./src/index.ts",
     output: {
       publicPath: "/",
       path: publicFolder,
@@ -51,7 +51,15 @@ module.exports = (env) => {
           test: /\.css$/,
           use: ["style-loader", "css-loader"],
         },
+        {
+          test: /\.ts$/,
+          use: "ts-loader",
+          exclude: /node_modules/,
+        },
       ],
+    },
+    resolve: {
+      extensions: [".ts", ".js"],
     },
     plugins: [new NodePolyfillPlugin(), new webpack.NoEmitOnErrorsPlugin()],
   };

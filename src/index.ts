@@ -6,15 +6,17 @@ import {
   SlopeWalletAdapter,
   LedgerWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
+import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
+import { web3 } from "@project-serum/anchor";
+import * as txns from "./txns";
 
-const web3 = require("./web3.js");
 const { Elm } = require("./Main.elm");
 
 // eslint-disable-next-line fp/no-let
-let theme = null;
+let theme: null | HTMLAudioElement = null;
 
 // eslint-disable-next-line fp/no-let
-let activeWallet = null;
+let activeWallet: null | BaseSignerWalletAdapter = null;
 
 const app = Elm.Main.init({
   node: document.getElementById("app"),
@@ -24,7 +26,7 @@ const app = Elm.Main.init({
   },
 });
 
-const getWallet = (n) => {
+const getWallet = (n: number) => {
   const wallet = (() => {
     switch (n) {
       case 0: {
@@ -47,17 +49,20 @@ const getWallet = (n) => {
     : null;
 };
 
-const fetchState = async (wallet) => {
-  const data = await web3.fetchStake(wallet);
+const fetchState = async (wallet: BaseSignerWalletAdapter) => {
+  const data = await txns.fetchStake(wallet);
   const stake = data
     ? {
         mintId: data.mintId.toString(),
         stakingStart: data.stakingStart.toNumber(),
       }
     : null;
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
   return {
     address: wallet.publicKey.toString(),
-    nfts: await web3.fetchOwned(wallet),
+    nfts: await txns.fetchOwned(wallet),
     stake,
   };
 };
@@ -84,12 +89,13 @@ app.ports.stopTheme.subscribe(() => {
   theme.pause();
 });
 
-app.ports.stake.subscribe((mintId) =>
+app.ports.stake.subscribe((mintId: string) =>
   (async () => {
     if (!(activeWallet && activeWallet.connected)) {
       return;
     }
-    const res = await web3.deposit(activeWallet, mintId);
+    const mintPK = new web3.PublicKey(mintId);
+    const res = await txns.deposit(activeWallet, mintPK);
     console.log(res);
     return app.ports.stakeResponse.send({ stakingStart: Date.now(), mintId });
   })().catch((e) => {
@@ -98,12 +104,13 @@ app.ports.stake.subscribe((mintId) =>
   })
 );
 
-app.ports.withdraw.subscribe((mintId) =>
+app.ports.withdraw.subscribe((mintId: string) =>
   (async () => {
     if (!(activeWallet && activeWallet.connected)) {
       return;
     }
-    const res = await web3.withdraw(activeWallet, mintId);
+    const mintPK = new web3.PublicKey(mintId);
+    const res = await txns.withdraw(activeWallet, mintPK);
     console.log(res);
     alert("Success!");
   })().catch((e) => {
@@ -111,7 +118,7 @@ app.ports.withdraw.subscribe((mintId) =>
   })
 );
 
-app.ports.connect.subscribe((id) =>
+app.ports.connect.subscribe((id: number) =>
   (async () => {
     const wallet = getWallet(id);
 
