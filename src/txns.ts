@@ -1,23 +1,22 @@
-import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
+import {
+  Metadata,
+  MetadataData,
+} from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
-import { web3, Provider, Program, utils } from "@project-serum/anchor";
+import { web3, utils } from "@project-serum/anchor";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { deposit as depositFn } from "./codegen/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
+import { Stake } from "./codegen/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/programId";
 
-const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
+const isNotNull = <T>(item: T | null): item is T => item !== null;
 
-const idl = require("./nestquest.json");
+const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
 
 const connection = new web3.Connection(
   "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
 );
-
-// @ts-ignore
-const provider = new Provider(connection);
-
-const program = new Program(idl, PROGRAM_ID, provider);
 
 const launch = async (
   wallet: BaseSignerWalletAdapter,
@@ -37,11 +36,11 @@ const launch = async (
   return connection.sendRawTransaction(signedTransaction.serialize());
 };
 
-const fetchMeta = async (mintId: web3.PublicKey) => {
+const fetchMeta = async (mintId: web3.PublicKey): Promise<MetadataData> => {
   const metadata = await Metadata.getPDA(mintId);
   const metadataInfo = await Account.getInfo(connection, metadata);
   const res = new Metadata(metadata, metadataInfo);
-  return res.data || null;
+  return res.data;
 };
 
 const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
@@ -54,7 +53,7 @@ const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
     PROGRAM_ID
   );
 
-  const stake = await program.account.stake.fetchNullable(stakeAddr);
+  const stake = await Stake.fetch(connection, stakeAddr);
   if (!stake) {
     return null;
   }
@@ -161,7 +160,9 @@ const deposit = async (
   return launch(wallet, transaction);
 };
 
-const fetchOwned = async (wallet: BaseSignerWalletAdapter) => {
+const fetchOwned = async (
+  wallet: BaseSignerWalletAdapter
+): Promise<string[]> => {
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
@@ -183,16 +184,18 @@ const fetchOwned = async (wallet: BaseSignerWalletAdapter) => {
     return [];
   }
 
-  const metadata = await Promise.all(
+  const metadata: (MetadataData | null)[] = await Promise.all(
     tokens.map((x) =>
       fetchMeta(x.account.data.parsed.info.mint).catch(() => null)
     )
   );
 
-  return metadata
-    .filter((x) => x)
+  const mints = metadata
+    .filter(isNotNull)
     .filter((md) => md.updateAuthority === UPDATE_AUTH)
     .map((md) => md.mint);
+
+  return mints;
 };
 
 export { withdraw, fetchOwned, fetchStake, deposit };
