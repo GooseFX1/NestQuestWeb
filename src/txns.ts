@@ -1,7 +1,4 @@
-import {
-  Metadata,
-  MetadataData,
-} from "@metaplex-foundation/mpl-token-metadata";
+import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, utils } from "@project-serum/anchor";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
@@ -10,13 +7,13 @@ import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
 import { Stake } from "./codegen/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/programId";
 
-const isNotNull = <T>(item: T | null): item is T => item !== null;
-
 const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
 
 const connection = new web3.Connection(
   "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
 );
+
+const isNotNull = <T>(item: T | null): item is T => item !== null;
 
 const launch = async (
   wallet: BaseSignerWalletAdapter,
@@ -34,13 +31,6 @@ const launch = async (
   const signedTransaction = await wallet.signTransaction(transaction);
 
   return connection.sendRawTransaction(signedTransaction.serialize());
-};
-
-const fetchMeta = async (mintId: web3.PublicKey): Promise<MetadataData> => {
-  const metadata = await Metadata.getPDA(mintId);
-  const metadataInfo = await Account.getInfo(connection, metadata);
-  const res = new Metadata(metadata, metadataInfo);
-  return res.data;
 };
 
 const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
@@ -184,16 +174,32 @@ const fetchOwned = async (
     return [];
   }
 
-  const metadata: (MetadataData | null)[] = await Promise.all(
-    tokens.map((x) =>
-      fetchMeta(x.account.data.parsed.info.mint).catch(() => null)
-    )
+  const pdas: web3.PublicKey[] = await Promise.all(
+    tokens.map((token) => Metadata.getPDA(token.account.data.parsed.info.mint))
   );
 
-  const mints = metadata
+  const accounts = await Account.getInfos(connection, pdas);
+
+  const metadatas = Array.from(accounts.entries()).map(
+    ([metadataKey, account]) => {
+      // BUGFIX: Required to mitigate Account.getInfos
+      // incorrectly returning account.owner as a string.
+      // eslint-disable-next-line fp/no-mutation
+      account.owner = new web3.PublicKey(account.owner);
+
+      try {
+        return new Metadata(metadataKey, account);
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
+    }
+  );
+
+  const mints = metadatas
     .filter(isNotNull)
-    .filter((md) => md.updateAuthority === UPDATE_AUTH)
-    .map((md) => md.mint);
+    .filter((md) => md.data.updateAuthority === UPDATE_AUTH)
+    .map((md) => md.data.mint);
 
   return mints;
 };
