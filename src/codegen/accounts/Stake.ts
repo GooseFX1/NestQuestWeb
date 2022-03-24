@@ -1,7 +1,6 @@
 import { PublicKey, Connection } from "@solana/web3.js"
 import BN from "bn.js"
 import * as borsh from "@project-serum/borsh"
-import * as types from "../types"
 import { PROGRAM_ID } from "../programId"
 
 export interface StakeFields {
@@ -43,6 +42,24 @@ export class Stake {
     }
 
     return this.decode(info.data)
+  }
+
+  static async fetchMultiple(
+    c: Connection,
+    addresses: PublicKey[]
+  ): Promise<Array<Stake | null>> {
+    const infos = await c.getMultipleAccountsInfo(addresses)
+
+    return infos.map((info) => {
+      if (info === null) {
+        return null
+      }
+      if (!info.owner.equals(PROGRAM_ID)) {
+        throw new Error("account doesn't belong to this program")
+      }
+
+      return this.decode(info.data)
+    })
   }
 
   static decode(data: Buffer): Stake {

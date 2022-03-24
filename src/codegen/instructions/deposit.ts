@@ -1,7 +1,6 @@
 import { PublicKey, TransactionInstruction } from "@solana/web3.js"
 import BN from "bn.js"
 import * as borsh from "@project-serum/borsh"
-import * as types from "../types"
 import { PROGRAM_ID } from "../programId"
 
 export interface DepositAccounts {
