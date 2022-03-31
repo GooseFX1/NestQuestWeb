@@ -13,6 +13,7 @@ type alias Model =
     , time : Int
     , scrollStart : Int
     , playButtonPulse : Bool
+    , withdrawComplete : Bool
     }
 
 
@@ -53,4 +54,5 @@ type Msg
     | Incubate
     | Withdraw String
     | StakeResponse (Maybe Stake)
+    | WithdrawResponse (Maybe String)
     | Tick Posix
