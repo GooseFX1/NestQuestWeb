@@ -13,8 +13,10 @@ export interface WithdrawAccounts {
   vault: PublicKey
   tokenAccount: PublicKey
   stake: PublicKey
+  gofxVault: PublicKey
+  gofxUserAccount: PublicKey
+  gofxMint: PublicKey
   tokenProgram: PublicKey
-  systemProgram: PublicKey
 }
 
 export const layout = borsh.struct([
@@ -28,8 +30,10 @@ export function withdraw(args: WithdrawArgs, accounts: WithdrawAccounts) {
     { pubkey: accounts.vault, isSigner: false, isWritable: true },
     { pubkey: accounts.tokenAccount, isSigner: false, isWritable: true },
     { pubkey: accounts.stake, isSigner: false, isWritable: true },
+    { pubkey: accounts.gofxVault, isSigner: false, isWritable: true },
+    { pubkey: accounts.gofxUserAccount, isSigner: false, isWritable: true },
+    { pubkey: accounts.gofxMint, isSigner: false, isWritable: false },
     { pubkey: accounts.tokenProgram, isSigner: false, isWritable: false },
-    { pubkey: accounts.systemProgram, isSigner: false, isWritable: false },
   ]
   const identifier = Buffer.from([183, 18, 70, 156, 148, 109, 161, 34])
   const buffer = Buffer.alloc(1000)

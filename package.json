@@ -7,6 +7,8 @@
     "@metaplex-foundation/mpl-core": "^0.0.5",
     "@metaplex-foundation/mpl-token-metadata": "^1.2.4",
     "@project-serum/anchor": "^0.22.1",
+    "@solana/buffer-layout": "^4.0.0",
+    "@solana/spl-token": "^0.2.0",
     "@solana/wallet-adapter-wallets": "^0.15.4",
     "css-loader": "^6.6.0",
     "elm": "^0.19.1-3",

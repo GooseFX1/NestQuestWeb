@@ -29,6 +29,7 @@ init flags =
       , time = flags.now // 1000
       , scrollStart = flags.screen.height
       , playButtonPulse = True
+      , withdrawComplete = False
       }
     , Cmd.none
     )
@@ -38,6 +39,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     [ Ports.connectResponse Types.ConnectResponse
     , Ports.stakeResponse Types.StakeResponse
+    , Ports.withdrawResponse Types.WithdrawResponse
     , Time.every 10000 Types.Tick
     ]
         |> Sub.batch

@@ -3,6 +3,42 @@
   "name": "nestquest",
   "instructions": [
     {
+      "name": "initVault",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "gofxVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "gofxMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "deposit",
       "accounts": [
         {
@@ -77,12 +113,22 @@
           "isSigner": false
         },
         {
-          "name": "tokenProgram",
+          "name": "gofxVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "gofxUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "gofxMint",
           "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram",
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }

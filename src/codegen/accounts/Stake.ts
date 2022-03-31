@@ -44,24 +44,6 @@ export class Stake {
     return this.decode(info.data)
   }
 
-  static async fetchMultiple(
-    c: Connection,
-    addresses: PublicKey[]
-  ): Promise<Array<Stake | null>> {
-    const infos = await c.getMultipleAccountsInfo(addresses)
-
-    return infos.map((info) => {
-      if (info === null) {
-        return null
-      }
-      if (!info.owner.equals(PROGRAM_ID)) {
-        throw new Error("account doesn't belong to this program")
-      }
-
-      return this.decode(info.data)
-    })
-  }
-
   static decode(data: Buffer): Stake {
     if (!data.slice(0, 8).equals(Stake.discriminator)) {
       throw new Error("invalid account discriminator")

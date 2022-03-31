@@ -110,9 +110,14 @@ app.ports.withdraw.subscribe((mintId: string) =>
       return;
     }
     const mintPK = new web3.PublicKey(mintId);
+
+    if (await txns.hasBeenStaked(mintPK)) {
+      return app.ports.withdrawResponse.send(mintPK.toString());
+    }
+
     const res = await txns.withdraw(activeWallet, mintPK);
     console.log(res);
-    alert("Success!");
+    return app.ports.withdrawResponse.send(null);
   })().catch((e) => {
     console.error(e);
   })

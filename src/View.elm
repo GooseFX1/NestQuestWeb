@@ -167,7 +167,7 @@ viewMobile model =
                     , spacing 15
                     ]
                 |> inFront
-            , viewIncubate True model.time model.wallet model.dropdown
+            , viewIncubate model.withdrawComplete True model.time model.wallet model.dropdown
             ]
             { src = "/world-mobile.png", description = "" }
       ]
@@ -335,7 +335,7 @@ viewDesktop model =
                 ]
                 { src = "/parchment-desktop.svg", description = "" }
                 |> inFront
-            , viewIncubate False model.time model.wallet model.dropdown
+            , viewIncubate model.withdrawComplete False model.time model.wallet model.dropdown
             ]
             { src = "/world-desktop.png", description = "" }
       ]
@@ -367,8 +367,8 @@ infoText =
     ]
 
 
-viewIncubate : Bool -> Int -> Maybe State -> Bool -> Attribute Msg
-viewIncubate isMobile time wallet dropdown =
+viewIncubate : Bool -> Bool -> Int -> Maybe State -> Bool -> Attribute Msg
+viewIncubate withdrawComplete isMobile time wallet dropdown =
     let
         down =
             if isMobile then
@@ -420,7 +420,7 @@ viewIncubate isMobile time wallet dropdown =
             |> Maybe.andThen .stake
             |> unwrap
                 (incubateButton isMobile hasEgg)
-                (withdrawButton isMobile time)
+                (withdrawButton withdrawComplete isMobile time)
     ]
         |> column
             [ alignRight
@@ -738,8 +738,8 @@ incubateButton isMobile hasEgg =
         }
 
 
-withdrawButton : Bool -> Int -> Stake -> Element Msg
-withdrawButton isMobile time stake =
+withdrawButton : Bool -> Bool -> Int -> Stake -> Element Msg
+withdrawButton withdrawComplete isMobile time stake =
     let
         stakingEnd =
             stake.stakingStart
@@ -775,19 +775,25 @@ withdrawButton isMobile time stake =
         , whenAttr (not canWithdraw) fade
         ]
         { onPress =
-            if canWithdraw then
+            if withdrawComplete then
+                Nothing
+
+            else if canWithdraw then
                 Just <| Withdraw stake.mintId
 
             else
                 Nothing
         , label =
-            (if canWithdraw then
-                gradientText "Withdraw"
+            (if withdrawComplete then
+                "Complete"
+
+             else if canWithdraw then
+                "Withdraw"
 
              else
                 calcCountdown diff
-                    |> gradientText
             )
+                |> gradientText
                 |> el [ centerX ]
         }
 

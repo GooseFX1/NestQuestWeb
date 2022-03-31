@@ -1,6 +1,7 @@
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, utils } from "@project-serum/anchor";
+import { Token } from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { deposit as depositFn } from "./codegen/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
@@ -8,6 +9,7 @@ import { Stake } from "./codegen/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/programId";
 
 const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
+const GOFX = "GFX1ZjR2P15tmrSwow6FjyDYcEkoFb4p4gJCpLBjaxHD";
 
 const connection = new web3.Connection(
   "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
@@ -31,6 +33,15 @@ const launch = async (
   const signedTransaction = await wallet.signTransaction(transaction);
 
   return connection.sendRawTransaction(signedTransaction.serialize());
+};
+
+const hasBeenStaked = async (mintId: web3.PublicKey): Promise<boolean> => {
+  const [vaultAddr] = await web3.PublicKey.findProgramAddress(
+    [Buffer.from("vault"), mintId.toBuffer()],
+    PROGRAM_ID
+  );
+  const res = await connection.getAccountInfo(vaultAddr);
+  return Boolean(res);
 };
 
 const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
@@ -82,6 +93,20 @@ const withdraw = async (
     PROGRAM_ID
   );
 
+  const [gofxVaultAddr] = await web3.PublicKey.findProgramAddress(
+    [Buffer.from("gofx")],
+    PROGRAM_ID
+  );
+
+  const gofxMintAcct = new web3.PublicKey(GOFX);
+
+  const gofxUserAddr = await utils.token.associatedAddress({
+    mint: gofxMintAcct,
+    owner: wallet.publicKey,
+  });
+
+  const assocGOFXAccount = await connection.getAccountInfo(gofxUserAddr);
+
   const args = { vaultBump, stakeBump };
 
   const accounts = {
@@ -91,14 +116,28 @@ const withdraw = async (
       mint: mintKey,
       owner: wallet.publicKey,
     }),
+    gofxMint: gofxMintAcct,
+    gofxVault: gofxVaultAddr,
+    gofxUserAccount: gofxUserAddr,
     stake: stakeAddr,
-    systemProgram: web3.SystemProgram.programId,
     tokenProgram: utils.token.TOKEN_PROGRAM_ID,
   };
 
   const ix = withdrawFn(args, accounts);
 
   const transaction = new web3.Transaction();
+  if (!assocGOFXAccount) {
+    transaction.add(
+      Token.createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        gofxUserAddr,
+        wallet.publicKey,
+        gofxMintAcct,
+        utils.token.TOKEN_PROGRAM_ID,
+        utils.token.ASSOCIATED_PROGRAM_ID
+      )
+    );
+  }
   transaction.add(ix);
 
   return launch(wallet, transaction);
@@ -204,4 +243,4 @@ const fetchOwned = async (
   return mints;
 };
 
-export { withdraw, fetchOwned, fetchStake, deposit };
+export { withdraw, hasBeenStaked, fetchOwned, fetchStake, deposit };
