@@ -39,6 +39,39 @@ update msg model =
             , Ports.disconnect ()
             )
 
+        WithdrawResponse alreadyStakedId ->
+            alreadyStakedId
+                |> unwrap
+                    ( { model
+                        | wallet =
+                            model.wallet
+                                |> Maybe.map
+                                    (\state ->
+                                        { state
+                                            | stake = Nothing
+                                        }
+                                    )
+                        , withdrawComplete = True
+                      }
+                    , Cmd.none
+                    )
+                    (\id ->
+                        ( { model
+                            | wallet =
+                                model.wallet
+                                    |> Maybe.map
+                                        (\state ->
+                                            { state
+                                                | nfts =
+                                                    state.nfts
+                                                        |> List.filter ((/=) id)
+                                            }
+                                        )
+                          }
+                        , Cmd.none
+                        )
+                    )
+
         ChangeWallet ->
             ( { model
                 | wallet = Nothing

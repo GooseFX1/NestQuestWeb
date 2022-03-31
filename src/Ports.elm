@@ -1,4 +1,4 @@
-port module Ports exposing (connect, connectResponse, disconnect, log, playTheme, stake, stakeResponse, stopTheme, withdraw)
+port module Ports exposing (connect, connectResponse, disconnect, log, playTheme, stake, stakeResponse, stopTheme, withdraw, withdrawResponse)
 
 import Types
 
@@ -36,3 +36,6 @@ port connectResponse : (Maybe Types.State -> msg) -> Sub msg
 
 
 port stakeResponse : (Maybe Types.Stake -> msg) -> Sub msg
+
+
+port withdrawResponse : (Maybe String -> msg) -> Sub msg
