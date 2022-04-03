@@ -788,7 +788,7 @@ withdrawButton withdrawComplete isMobile time stake =
                 "Complete"
 
              else if canWithdraw then
-                "Withdraw"
+                "Evolve"
 
              else
                 calcCountdown diff
