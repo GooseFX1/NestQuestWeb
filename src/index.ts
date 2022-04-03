@@ -95,6 +95,11 @@ app.ports.stake.subscribe((mintId: string) =>
       return;
     }
     const mintPK = new web3.PublicKey(mintId);
+
+    if (await txns.hasBeenStaked(mintPK)) {
+      return app.ports.alreadyStaked.send(mintPK.toString());
+    }
+
     const res = await txns.deposit(activeWallet, mintPK);
     console.log(res);
     return app.ports.stakeResponse.send({ stakingStart: Date.now(), mintId });
@@ -110,10 +115,6 @@ app.ports.withdraw.subscribe((mintId: string) =>
       return;
     }
     const mintPK = new web3.PublicKey(mintId);
-
-    if (await txns.hasBeenStaked(mintPK)) {
-      return app.ports.withdrawResponse.send(mintPK.toString());
-    }
 
     const res = await txns.withdraw(activeWallet, mintPK);
     console.log(res);

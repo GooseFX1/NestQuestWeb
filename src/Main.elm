@@ -40,6 +40,7 @@ subscriptions _ =
     [ Ports.connectResponse Types.ConnectResponse
     , Ports.stakeResponse Types.StakeResponse
     , Ports.withdrawResponse Types.WithdrawResponse
+    , Ports.alreadyStaked Types.AlreadyStaked
     , Time.every 10000 Types.Tick
     ]
         |> Sub.batch
