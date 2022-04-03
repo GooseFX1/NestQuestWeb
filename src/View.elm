@@ -392,6 +392,20 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
         isStaking =
             wallet
                 |> unwrap False (.stake >> isJust)
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+
+        w =
+            if isMobile then
+                150
+
+            else
+                230
     in
     [ image
         [ width <|
@@ -415,12 +429,29 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
     , if wallet == Nothing then
         connectButton isMobile (Maybe.map .address wallet) dropdown
 
+      else if withdrawComplete then
+        Input.button
+            [ height <| px 58
+            , width <| px w
+            , Border.width 3
+            , Border.color wine
+            , Border.rounded 30
+            , Background.color sand
+            , Font.size fnt
+            ]
+            { onPress = Nothing
+            , label =
+                "Success"
+                    |> gradientText
+                    |> el [ centerX ]
+            }
+
       else
         wallet
             |> Maybe.andThen .stake
             |> unwrap
                 (incubateButton isMobile hasEgg)
-                (withdrawButton withdrawComplete isMobile time)
+                (withdrawButton isMobile time)
     ]
         |> column
             [ alignRight
@@ -738,8 +769,8 @@ incubateButton isMobile hasEgg =
         }
 
 
-withdrawButton : Bool -> Bool -> Int -> Stake -> Element Msg
-withdrawButton withdrawComplete isMobile time stake =
+withdrawButton : Bool -> Int -> Stake -> Element Msg
+withdrawButton isMobile time stake =
     let
         stakingEnd =
             stake.stakingStart
@@ -775,19 +806,13 @@ withdrawButton withdrawComplete isMobile time stake =
         , whenAttr (not canWithdraw) fade
         ]
         { onPress =
-            if withdrawComplete then
-                Nothing
-
-            else if canWithdraw then
+            if canWithdraw then
                 Just <| Withdraw stake.mintId
 
             else
                 Nothing
         , label =
-            (if withdrawComplete then
-                "Complete"
-
-             else if canWithdraw then
+            (if canWithdraw then
                 "Evolve"
 
              else
