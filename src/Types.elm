@@ -53,6 +53,7 @@ type Msg
     | ChangeWallet
     | Incubate
     | Withdraw String
+    | AlreadyStaked String
     | StakeResponse (Maybe Stake)
-    | WithdrawResponse (Maybe String)
+    | WithdrawResponse ()
     | Tick Posix
