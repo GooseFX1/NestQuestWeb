@@ -1,7 +1,7 @@
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, utils } from "@project-serum/anchor";
-import { Token } from "@solana/spl-token";
+import * as Spl from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { deposit as depositFn } from "./codegen/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
@@ -128,7 +128,8 @@ const withdraw = async (
   const transaction = new web3.Transaction();
   if (!assocGOFXAccount) {
     transaction.add(
-      Token.createAssociatedTokenAccountInstruction(
+      // @ts-ignore
+      Spl.createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         gofxUserAddr,
         wallet.publicKey,
