@@ -32,13 +32,19 @@ type alias Screen =
 type alias State =
     { address : String
     , stake : Maybe Stake
-    , nfts : List String
+    , nfts : List Nft
     }
 
 
 type alias Stake =
     { mintId : String
     , stakingStart : Int
+    }
+
+
+type alias Nft =
+    { mintId : String
+    , name : String
     }
 
 

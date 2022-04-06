@@ -6,7 +6,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (cappedWidth, style, when, whenAttr)
+import FormatNumber
+import FormatNumber.Locales exposing (usLocale)
+import Helpers.View exposing (cappedWidth, style, when, whenAttr, whenJust)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -384,9 +386,12 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
             else
                 120
 
-        hasEgg =
+        activeEgg =
             wallet
                 |> Maybe.andThen (.nfts >> List.head)
+
+        hasEgg =
+            activeEgg
                 |> isJust
 
         isStaking =
@@ -417,6 +422,41 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
                     243
                 )
         , centerX
+        , activeEgg
+            |> Maybe.andThen
+                (\egg ->
+                    egg.name
+                        |> String.filter ((/=) '\u{0000}')
+                        |> String.split "#"
+                        |> List.reverse
+                        |> List.head
+                        |> Maybe.andThen String.toInt
+                )
+            |> whenJust
+                (formatInt
+                    >> text
+                    >> el
+                        [ Font.color white
+                        , centerX
+                        , Font.size
+                            (if isMobile then
+                                15
+
+                             else
+                                18
+                            )
+                        , meriendaRegular
+                        , moveDown
+                            (if isMobile then
+                                60
+
+                             else
+                                130
+                            )
+                        , Font.bold
+                        ]
+                )
+            |> inFront
         ]
         { src =
             if hasEgg || isStaking then
@@ -1159,3 +1199,13 @@ viewFooter =
         |> column [ spacing 20, centerX, padding 30 ]
     ]
         |> column [ width fill ]
+
+
+formatInt : Int -> String
+formatInt =
+    toFloat
+        >> FormatNumber.format
+            { usLocale
+                | decimals =
+                    FormatNumber.Locales.Exact 0
+            }
