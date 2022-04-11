@@ -23,7 +23,7 @@ update msg model =
             ( model
             , model.wallet
                 |> Maybe.andThen (.nfts >> List.head)
-                |> unwrap Cmd.none Ports.stake
+                |> unwrap Cmd.none (.mintId >> Ports.stake)
             )
 
         Withdraw mintId ->
@@ -63,7 +63,7 @@ update msg model =
                                 { state
                                     | nfts =
                                         state.nfts
-                                            |> List.filter ((/=) mintId)
+                                            |> List.filter (.mintId >> (/=) mintId)
                                 }
                             )
               }

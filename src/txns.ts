@@ -1,19 +1,30 @@
-import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
+import {
+  Metadata,
+  PROGRAM_ID as METADATA_ID,
+} from "@metaplex-foundation/mpl-token-metadata";
 import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, utils } from "@project-serum/anchor";
-import * as Spl from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { deposit as depositFn } from "./codegen/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
 import { Stake } from "./codegen/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/programId";
 
-const UPDATE_AUTH = "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ";
-const GOFX = "GFX1ZjR2P15tmrSwow6FjyDYcEkoFb4p4gJCpLBjaxHD";
+const UPDATE_AUTH = new web3.PublicKey(
+  "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ"
+);
+
+const GOFX = new web3.PublicKey("GFX1ZjR2P15tmrSwow6FjyDYcEkoFb4p4gJCpLBjaxHD");
 
 const connection = new web3.Connection(
   "https://solana-api.syndica.io/access-token/kKNTdSoSx35CV9cKOQjdpAHQgVyX5wiFPaqy4za5XHjRyjxWdPUKY2bKqxIabR79/rpc"
 );
+
+interface Nft {
+  mintId: string;
+  name: string;
+}
 
 const isNotNull = <T>(item: T | null): item is T => item !== null;
 
@@ -42,6 +53,17 @@ const hasBeenStaked = async (mintId: web3.PublicKey): Promise<boolean> => {
   );
   const res = await connection.getAccountInfo(vaultAddr);
   return Boolean(res);
+};
+
+const getMetadataPDA = async (
+  mintId: web3.PublicKey
+): Promise<web3.PublicKey> => {
+  const [addr] = await web3.PublicKey.findProgramAddress(
+    [Buffer.from("metadata"), METADATA_ID.toBuffer(), mintId.toBuffer()],
+    METADATA_ID
+  );
+
+  return addr;
 };
 
 const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
@@ -98,10 +120,8 @@ const withdraw = async (
     PROGRAM_ID
   );
 
-  const gofxMintAcct = new web3.PublicKey(GOFX);
-
   const gofxUserAddr = await utils.token.associatedAddress({
-    mint: gofxMintAcct,
+    mint: GOFX,
     owner: wallet.publicKey,
   });
 
@@ -116,7 +136,7 @@ const withdraw = async (
       mint: mintKey,
       owner: wallet.publicKey,
     }),
-    gofxMint: gofxMintAcct,
+    gofxMint: GOFX,
     gofxVault: gofxVaultAddr,
     gofxUserAccount: gofxUserAddr,
     stake: stakeAddr,
@@ -128,12 +148,11 @@ const withdraw = async (
   const transaction = new web3.Transaction();
   if (!assocGOFXAccount) {
     transaction.add(
-      // @ts-ignore
-      Spl.createAssociatedTokenAccountInstruction(
+      createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         gofxUserAddr,
         wallet.publicKey,
-        gofxMintAcct,
+        GOFX,
         utils.token.TOKEN_PROGRAM_ID,
         utils.token.ASSOCIATED_PROGRAM_ID
       )
@@ -148,10 +167,8 @@ const deposit = async (
   wallet: BaseSignerWalletAdapter,
   mintId: web3.PublicKey
 ) => {
-  const mintKey = new web3.PublicKey(mintId);
-
   const [vaultAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("vault"), mintKey.toBuffer()],
+    [Buffer.from("vault"), mintId.toBuffer()],
     PROGRAM_ID
   );
 
@@ -164,13 +181,13 @@ const deposit = async (
     PROGRAM_ID
   );
 
-  const metadataAddr = await Metadata.getPDA(mintId);
+  const metadataAddr = await getMetadataPDA(mintId);
 
   const accounts = {
     payer: wallet.publicKey,
     vault: vaultAddr,
     tokenAccount: await utils.token.associatedAddress({
-      mint: mintKey,
+      mint: mintId,
       owner: wallet.publicKey,
     }),
     mint: mintId,
@@ -190,9 +207,7 @@ const deposit = async (
   return launch(wallet, transaction);
 };
 
-const fetchOwned = async (
-  wallet: BaseSignerWalletAdapter
-): Promise<string[]> => {
+const fetchOwned = async (wallet: BaseSignerWalletAdapter): Promise<Nft[]> => {
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
@@ -204,44 +219,44 @@ const fetchOwned = async (
     }
   );
 
-  const tokens = tokensRaw.value.filter(
+  const tokensFiltered = tokensRaw.value.filter(
     (tk) =>
       tk.account.data.parsed.info.tokenAmount.uiAmount === 1 &&
       tk.account.data.parsed.info.tokenAmount.decimals === 0
   );
 
-  if (tokens.length === 0) {
+  if (tokensFiltered.length === 0) {
     return [];
   }
 
-  const pdas: web3.PublicKey[] = await Promise.all(
-    tokens.map((token) => Metadata.getPDA(token.account.data.parsed.info.mint))
+  const tokens = tokensFiltered.map(
+    (token) => new web3.PublicKey(token.account.data.parsed.info.mint)
   );
+
+  const pdas: web3.PublicKey[] = await Promise.all(tokens.map(getMetadataPDA));
 
   const accounts = await Account.getInfos(connection, pdas);
 
-  const metadatas = Array.from(accounts.entries()).map(
-    ([metadataKey, account]) => {
-      // BUGFIX: Required to mitigate Account.getInfos
-      // incorrectly returning account.owner as a string.
-      // eslint-disable-next-line fp/no-mutation
-      account.owner = new web3.PublicKey(account.owner);
-
-      try {
-        return new Metadata(metadataKey, account);
-      } catch (e) {
-        console.error(e);
-        return null;
-      }
+  const metadatas = Array.from(accounts.values()).map((account) => {
+    try {
+      const [res] = Metadata.fromAccountInfo(account);
+      return res;
+    } catch (e) {
+      console.error(e);
+      return null;
     }
-  );
+  });
 
-  const mints = metadatas
+  const gooseNfts = metadatas
     .filter(isNotNull)
-    .filter((md) => md.data.updateAuthority === UPDATE_AUTH)
-    .map((md) => md.data.mint);
+    .filter((md) => md.updateAuthority.equals(UPDATE_AUTH));
 
-  return mints;
+  const data = gooseNfts.map((metadata) => ({
+    mintId: metadata.mint.toString(),
+    name: metadata.data.name,
+  }));
+
+  return data;
 };
 
 export { withdraw, hasBeenStaked, fetchOwned, fetchStake, deposit };

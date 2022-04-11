@@ -6,7 +6,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (cappedWidth, style, when, whenAttr)
+import FormatNumber
+import FormatNumber.Locales exposing (usLocale)
+import Helpers.View exposing (cappedWidth, style, when, whenAttr, whenJust)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -384,28 +386,17 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
             else
                 120
 
-        hasEgg =
+        activeEgg =
             wallet
                 |> Maybe.andThen (.nfts >> List.head)
+
+        hasEgg =
+            activeEgg
                 |> isJust
 
         isStaking =
             wallet
                 |> unwrap False (.stake >> isJust)
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
-
-        w =
-            if isMobile then
-                150
-
-            else
-                230
     in
     [ image
         [ width <|
@@ -417,6 +408,41 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
                     243
                 )
         , centerX
+        , activeEgg
+            |> Maybe.andThen
+                (\egg ->
+                    egg.name
+                        |> String.filter ((/=) '\u{0000}')
+                        |> String.split "#"
+                        |> List.reverse
+                        |> List.head
+                        |> Maybe.andThen String.toInt
+                )
+            |> whenJust
+                (formatInt
+                    >> text
+                    >> el
+                        [ Font.color white
+                        , centerX
+                        , Font.size
+                            (if isMobile then
+                                15
+
+                             else
+                                18
+                            )
+                        , meriendaRegular
+                        , moveDown
+                            (if isMobile then
+                                60
+
+                             else
+                                130
+                            )
+                        , Font.bold
+                        ]
+                )
+            |> inFront
         ]
         { src =
             if hasEgg || isStaking then
@@ -428,23 +454,13 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
         }
     , if wallet == Nothing then
         connectButton isMobile (Maybe.map .address wallet) dropdown
+            |> el [ centerX ]
 
       else if withdrawComplete then
-        Input.button
-            [ height <| px 58
-            , width <| px w
-            , Border.width 3
-            , Border.color wine
-            , Border.rounded 30
-            , Background.color sand
-            , Font.size fnt
-            ]
-            { onPress = Nothing
-            , label =
-                "Success"
-                    |> gradientText
-                    |> el [ centerX ]
-            }
+        yellowButton isMobile
+            False
+            (gradientText "Success")
+            Nothing
 
       else
         wallet
@@ -452,6 +468,7 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
             |> unwrap
                 (incubateButton isMobile hasEgg)
                 (withdrawButton isMobile time)
+            |> el [ centerX ]
     ]
         |> column
             [ alignRight
@@ -732,41 +749,15 @@ musicButton pulse playing =
 
 incubateButton : Bool -> Bool -> Element Msg
 incubateButton isMobile hasEgg =
-    let
-        w =
-            if isMobile then
-                150
+    yellowButton isMobile
+        (not hasEgg)
+        (gradientText "Incubate Egg")
+        (if hasEgg then
+            Just Incubate
 
-            else
-                230
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
-    in
-    Input.button
-        [ height <| px 58
-        , width <| px w
-        , Border.width 3
-        , Border.color wine
-        , Border.rounded 30
-        , Background.color sand
-        , Font.size fnt
-        , whenAttr (not hasEgg) fade
-        ]
-        { onPress =
-            if hasEgg then
-                Just Incubate
-
-            else
-                Nothing
-        , label =
-            gradientText "Incubate Egg"
-                |> el [ centerX ]
-        }
+         else
+            Nothing
+        )
 
 
 withdrawButton : Bool -> Int -> Stake -> Element Msg
@@ -780,47 +771,22 @@ withdrawButton isMobile time stake =
 
         canWithdraw =
             time >= stake.stakingStart
-
-        w =
-            if isMobile then
-                150
-
-            else
-                230
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
     in
-    Input.button
-        [ height <| px 58
-        , width <| px w
-        , Border.width 3
-        , Border.color wine
-        , Border.rounded 30
-        , Background.color sand
-        , Font.size fnt
-        , whenAttr (not canWithdraw) fade
-        ]
-        { onPress =
-            if canWithdraw then
-                Just <| Withdraw stake.mintId
+    yellowButton isMobile
+        (not canWithdraw)
+        (if canWithdraw then
+            gradientText "Evolve"
 
-            else
-                Nothing
-        , label =
-            (if canWithdraw then
-                "Evolve"
-
-             else
-                calcCountdown diff
-            )
+         else
+            calcCountdown diff
                 |> gradientText
-                |> el [ centerX ]
-        }
+        )
+        (if canWithdraw then
+            Just <| Withdraw stake.mintId
+
+         else
+            Nothing
+        )
 
 
 calcCountdown : Duration.Duration -> String
@@ -875,50 +841,27 @@ calcCountdown diff =
 
 connectButton : Bool -> Maybe String -> Bool -> Element Msg
 connectButton isMobile addr dropdown =
-    let
-        w =
-            if isMobile then
-                150
+    [ yellowButton isMobile
+        False
+        (addr
+            |> unwrap
+                (gradientText "Connect Wallet")
+                (\val ->
+                    [ gradientText (formatAddress val)
+                    , image
+                        [ height <| px 30, width <| px 30 ]
+                        { src = "/caret.svg", description = "" }
+                    ]
+                        |> row [ spacing 10 ]
+                )
+            |> el [ hover ]
+        )
+        (if addr == Nothing then
+            Just Connect
 
-            else
-                230
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
-    in
-    [ Input.button
-        [ height <| px 58
-        , width <| px w
-        , Border.width 3
-        , Border.color wine
-        , Border.rounded 30
-        , Background.color sand
-        , Font.size fnt
-        ]
-        { onPress =
-            if addr == Nothing then
-                Just Connect
-
-            else
-                Just Convert
-        , label =
-            addr
-                |> unwrap
-                    (gradientText "Connect Wallet")
-                    (\val ->
-                        [ gradientText (formatAddress val)
-                        , image
-                            [ height <| px 30, width <| px 30 ]
-                            { src = "/caret.svg", description = "" }
-                        ]
-                            |> row [ spacing 10 ]
-                    )
-                |> el [ centerX, hover ]
-        }
+         else
+            Just Convert
+        )
     , el
         [ [ Input.button [ centerX, hover ]
                 { onPress = Just ChangeWallet
@@ -1159,3 +1102,47 @@ viewFooter =
         |> column [ spacing 20, centerX, padding 30 ]
     ]
         |> column [ width fill ]
+
+
+formatInt : Int -> String
+formatInt =
+    toFloat
+        >> FormatNumber.format
+            { usLocale
+                | decimals =
+                    FormatNumber.Locales.Exact 0
+            }
+
+
+yellowButton : Bool -> Bool -> Element msg -> Maybe msg -> Element msg
+yellowButton isMobile shouldFade elem msg =
+    let
+        w =
+            if isMobile then
+                150
+
+            else
+                230
+
+        fnt =
+            if isMobile then
+                14
+
+            else
+                22
+    in
+    Input.button
+        [ height <| px 58
+        , width <| px w
+        , Border.width 3
+        , Border.color wine
+        , Border.rounded 30
+        , Background.color sand
+        , Font.size fnt
+        , whenAttr shouldFade fade
+        ]
+        { onPress = msg
+        , label =
+            elem
+                |> el [ centerX ]
+        }

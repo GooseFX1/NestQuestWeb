@@ -97,6 +97,7 @@ app.ports.stake.subscribe((mintId: string) =>
     const mintPK = new web3.PublicKey(mintId);
 
     if (await txns.hasBeenStaked(mintPK)) {
+      alert("This NFT has already been staked.");
       return app.ports.alreadyStaked.send(mintPK.toString());
     }
 
