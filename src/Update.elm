@@ -161,7 +161,7 @@ mobileCheckpoints : Int -> Int -> Int -> Int
 mobileCheckpoints screenHeight currentIndex scrollVal =
     let
         start =
-            1400
+            1600
 
         scrollDepth =
             screenHeight + scrollVal
