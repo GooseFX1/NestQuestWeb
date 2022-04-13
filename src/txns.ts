@@ -28,6 +28,18 @@ interface Nft {
 
 const isNotNull = <T>(item: T | null): item is T => item !== null;
 
+const vaultAddress = (mintId: web3.PublicKey) =>
+  web3.PublicKey.findProgramAddress(
+    [Buffer.from("vault"), mintId.toBuffer()],
+    PROGRAM_ID
+  );
+
+const stakeAddress = (walletAddress: web3.PublicKey) =>
+  web3.PublicKey.findProgramAddress(
+    [Buffer.from("stake"), walletAddress.toBytes()],
+    PROGRAM_ID
+  );
+
 const launch = async (
   wallet: BaseSignerWalletAdapter,
   transaction: web3.Transaction
@@ -47,10 +59,7 @@ const launch = async (
 };
 
 const hasBeenStaked = async (mintId: web3.PublicKey): Promise<boolean> => {
-  const [vaultAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("vault"), mintId.toBuffer()],
-    PROGRAM_ID
-  );
+  const [vaultAddr] = await vaultAddress(mintId);
   const res = await connection.getAccountInfo(vaultAddr);
   return Boolean(res);
 };
@@ -71,20 +80,14 @@ const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
     throw "No publicKey";
   }
 
-  const [stakeAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("stake"), wallet.publicKey.toBytes()],
-    PROGRAM_ID
-  );
+  const [stakeAddr] = await stakeAddress(wallet.publicKey);
 
   const stake = await Stake.fetch(connection, stakeAddr);
   if (!stake) {
     return null;
   }
 
-  const [vaultAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("vault"), stake.mintId.toBuffer()],
-    PROGRAM_ID
-  );
+  const [vaultAddr] = await vaultAddress(stake.mintId);
 
   const balance = await connection.getTokenAccountBalance(vaultAddr);
 
@@ -99,21 +102,13 @@ const withdraw = async (
   wallet: BaseSignerWalletAdapter,
   mintId: web3.PublicKey
 ) => {
-  const mintKey = new web3.PublicKey(mintId);
-
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
 
-  const [stakeAddr, stakeBump] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-    PROGRAM_ID
-  );
+  const [stakeAddr, stakeBump] = await stakeAddress(wallet.publicKey);
 
-  const [vaultAddr, vaultBump] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("vault"), mintKey.toBuffer()],
-    PROGRAM_ID
-  );
+  const [vaultAddr, vaultBump] = await vaultAddress(mintId);
 
   const [gofxVaultAddr] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("gofx")],
@@ -133,7 +128,7 @@ const withdraw = async (
     payer: wallet.publicKey,
     vault: vaultAddr,
     tokenAccount: await utils.token.associatedAddress({
-      mint: mintKey,
+      mint: mintId,
       owner: wallet.publicKey,
     }),
     gofxMint: GOFX,
@@ -167,19 +162,13 @@ const deposit = async (
   wallet: BaseSignerWalletAdapter,
   mintId: web3.PublicKey
 ) => {
-  const [vaultAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("vault"), mintId.toBuffer()],
-    PROGRAM_ID
-  );
+  const [vaultAddr] = await vaultAddress(mintId);
 
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
 
-  const [stakeAddr] = await web3.PublicKey.findProgramAddress(
-    [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-    PROGRAM_ID
-  );
+  const [stakeAddr] = await stakeAddress(wallet.publicKey);
 
   const metadataAddr = await getMetadataPDA(mintId);
 
