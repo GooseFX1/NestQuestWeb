@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FormatNumber
 import FormatNumber.Locales exposing (usLocale)
-import Helpers.View exposing (cappedWidth, style, when, whenAttr, whenJust)
+import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -910,10 +910,23 @@ walletSelect isMobile =
             , meriendaRegular
             , Font.size 17
             ]
-    , walletPill 0 isMobile
-    , walletPill 1 isMobile
-    , walletPill 2 isMobile
-    , walletPill 3 isMobile
+    , [ walletPill 0 isMobile
+      , walletPill 1 isMobile
+      , walletPill 2 isMobile
+      , walletPill 3 isMobile
+      ]
+        |> column
+            [ width fill
+            , height fill
+            , scrollbarY
+            , spacing
+                (if isMobile then
+                    15
+
+                 else
+                    35
+                )
+            ]
     ]
         |> column
             [ centerX
@@ -930,6 +943,13 @@ walletSelect isMobile =
             , Border.rounded 30
             , Border.width 5
             , Border.color wine
+            , cappedHeight
+                (if isMobile then
+                    600
+
+                 else
+                    850
+                )
             , Input.button
                 [ alignTop
                 , alignRight
