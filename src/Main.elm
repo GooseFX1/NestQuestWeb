@@ -20,7 +20,7 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { isMobile = flags.screen.width < 1024
+    ( { isMobile = flags.screen.width < 1410
       , wallet = Nothing
       , themePlaying = False
       , scrollIndex = 0

@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FormatNumber
 import FormatNumber.Locales exposing (usLocale)
-import Helpers.View exposing (cappedWidth, style, when, whenAttr, whenJust)
+import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -66,37 +66,28 @@ viewMobile model =
             |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
       , [ [ image
                 [ centerX
-                , width <|
-                    if model.isMobile then
-                        fill
-
-                    else
-                        px 500
+                , width fill
                 ]
                 { src = "/logo.png", description = "" }
           , image
                 [ centerX
-                , width <|
-                    if model.isMobile then
-                        fill
-
-                    else
-                        px 500
+                , width fill
                 ]
                 { src = "/slogan.png", description = "" }
           ]
             |> column [ width fill, spacing 15 ]
         ]
             |> column
-                [ width fill
+                [ cappedWidth 650
                 , padding 50
+                , centerX
                 ]
       , image
-            [ --width <| px 381
-              cappedWidth 381
-            , height <| px 2098
+            [ cappedWidth 381
+            , height <| px 2198
             , centerX
-            , [ image
+            , [ el [ height <| px 100, width fill ] none
+              , image
                     [ height <| px 480
                     , width <| px 355
                     , centerX
@@ -116,7 +107,7 @@ viewMobile model =
                     { src = "/parchment-mobile.svg"
                     , description = ""
                     }
-              , el [ height <| px 30, width fill ] none
+              , el [ height <| px 10, width fill ] none
               , boxM body1
                     |> when (model.scrollIndex > 0)
               , [ lineImg 1
@@ -170,6 +161,9 @@ viewMobile model =
                     ]
                 |> inFront
             , viewIncubate model.withdrawComplete True model.time model.wallet model.dropdown
+            , viewStats True
+                |> el [ width fill, moveDown 190 ]
+                |> inFront
             ]
             { src = "/world-mobile.png", description = "" }
       ]
@@ -209,7 +203,7 @@ viewDesktop model =
       , image
             [ centerX
             , width <| px 1401
-            , height <| px 3155
+            , height <| px 3153
             , image
                 [ centerX
                 , moveDown 1048
@@ -338,6 +332,9 @@ viewDesktop model =
                 { src = "/parchment-desktop.svg", description = "" }
                 |> inFront
             , viewIncubate model.withdrawComplete False model.time model.wallet model.dropdown
+            , viewStats False
+                |> el [ centerX, width <| px 1000, moveDown 650 ]
+                |> inFront
             ]
             { src = "/world-desktop.png", description = "" }
       ]
@@ -538,6 +535,11 @@ getEgg isMobile =
 bg : Color
 bg =
     rgb255 42 42 42
+
+
+brown : Color
+brown =
+    rgb255 139 86 10
 
 
 wine : Color
@@ -908,10 +910,23 @@ walletSelect isMobile =
             , meriendaRegular
             , Font.size 17
             ]
-    , walletPill 0 isMobile
-    , walletPill 1 isMobile
-    , walletPill 2 isMobile
-    , walletPill 3 isMobile
+    , [ walletPill 0 isMobile
+      , walletPill 1 isMobile
+      , walletPill 2 isMobile
+      , walletPill 3 isMobile
+      ]
+        |> column
+            [ width fill
+            , height fill
+            , scrollbarY
+            , spacing
+                (if isMobile then
+                    15
+
+                 else
+                    35
+                )
+            ]
     ]
         |> column
             [ centerX
@@ -928,6 +943,13 @@ walletSelect isMobile =
             , Border.rounded 30
             , Border.width 5
             , Border.color wine
+            , cappedHeight
+                (if isMobile then
+                    600
+
+                 else
+                    850
+                )
             , Input.button
                 [ alignTop
                 , alignRight
@@ -1057,6 +1079,59 @@ gooseIcon n =
                 ]
                 { src = "/brand.svg", description = "" }
         }
+
+
+viewStats : Bool -> Element msg
+viewStats isMobile =
+    let
+        fnt =
+            if isMobile then
+                12
+
+            else
+                30
+
+        pd =
+            if isMobile then
+                20
+
+            else
+                30
+
+        sp =
+            if isMobile then
+                10
+
+            else
+                30
+
+        col =
+            column [ Background.color sand, Border.width 3, Border.color white, Border.rounded 25, padding pd, spacing sp ]
+    in
+    [ [ gradientText "Total Minted NFTs"
+      , text "12,366 / 25,000" |> el [ meriendaBold, Font.color brown, centerX ]
+      ]
+        |> col
+    , [ gradientText "NFTs In-Play"
+            |> el [ centerX ]
+      , text "1,137 / 12,366" |> el [ meriendaBold, Font.color brown, centerX ]
+      ]
+        |> col
+        |> el
+            [ paddingEach
+                { top =
+                    if isMobile then
+                        80
+
+                    else
+                        200
+                , bottom = 0
+                , left = 0
+                , right = 0
+                }
+            ]
+    ]
+        |> row [ width fill, spaceEvenly, Font.size fnt ]
 
 
 viewSocials : Element msg
