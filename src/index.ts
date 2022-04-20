@@ -12,6 +12,8 @@ import * as txns from "./txns";
 
 const { Elm } = require("./Main.elm");
 
+const DEBUG = window.location.search.includes("debug=true");
+
 // eslint-disable-next-line fp/no-let
 let theme: null | HTMLAudioElement = null;
 
@@ -106,6 +108,9 @@ app.ports.stake.subscribe((mintId: string) =>
     return app.ports.stakeResponse.send({ stakingStart: Date.now(), mintId });
   })().catch((e) => {
     console.error(e);
+    if (DEBUG) {
+      alert(e);
+    }
     return app.ports.stakeResponse.send(null);
   })
 );
@@ -122,6 +127,9 @@ app.ports.withdraw.subscribe((mintId: string) =>
     return app.ports.withdrawResponse.send(null);
   })().catch((e) => {
     console.error(e);
+    if (DEBUG) {
+      alert(e);
+    }
   })
 );
 
