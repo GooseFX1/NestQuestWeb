@@ -52,19 +52,19 @@ const getWallet = (n: number) => {
 };
 
 const fetchState = async (wallet: BaseSignerWalletAdapter) => {
-  const data = await txns.fetchStake(wallet);
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
+  const data = await txns.fetchStake(wallet.publicKey);
   const stake = data
     ? {
         mintId: data.mintId.toString(),
         stakingStart: data.stakingStart.toNumber(),
       }
     : null;
-  if (!wallet.publicKey) {
-    throw "No publicKey";
-  }
   return {
     address: wallet.publicKey.toString(),
-    nfts: await txns.fetchOwned(wallet),
+    nfts: await txns.fetchOwned(wallet.publicKey),
     stake,
   };
 };

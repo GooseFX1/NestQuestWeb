@@ -76,12 +76,8 @@ const getMetadataPDA = async (
   return addr;
 };
 
-const fetchStake = async (wallet: BaseSignerWalletAdapter) => {
-  if (!wallet.publicKey) {
-    throw "No publicKey";
-  }
-
-  const [stakeAddr] = await stakeAddress(wallet.publicKey);
+const fetchStake = async (walletAddress: web3.PublicKey) => {
+  const [stakeAddr] = await stakeAddress(walletAddress);
 
   const stake = await Stake.fetch(connection, stakeAddr);
   if (!stake) {
@@ -116,25 +112,27 @@ const withdraw = async (
     PROGRAM_ID
   );
 
-  const gofxUserAddr = await utils.token.associatedAddress({
+  const gofxAssocAddr = await utils.token.associatedAddress({
     mint: GOFX,
     owner: wallet.publicKey,
   });
+  const gofxAssocAccount = await connection.getAccountInfo(gofxAssocAddr);
 
-  const assocGOFXAccount = await connection.getAccountInfo(gofxUserAddr);
+  const nftAssocAddr = await utils.token.associatedAddress({
+    mint: mintId,
+    owner: wallet.publicKey,
+  });
+  const nftAssocAccount = await connection.getAccountInfo(nftAssocAddr);
 
   const args = { vaultBump, stakeBump };
 
   const accounts = {
     payer: wallet.publicKey,
     vault: vaultAddr,
-    tokenAccount: await utils.token.associatedAddress({
-      mint: mintId,
-      owner: wallet.publicKey,
-    }),
+    tokenAccount: nftAssocAddr,
     gofxMint: GOFX,
     gofxVault: gofxVaultAddr,
-    gofxUserAccount: gofxUserAddr,
+    gofxUserAccount: gofxAssocAddr,
     stake: stakeAddr,
     tokenProgram: utils.token.TOKEN_PROGRAM_ID,
   };
@@ -142,13 +140,25 @@ const withdraw = async (
   const ix = withdrawFn(args, accounts);
 
   const transaction = new web3.Transaction();
-  if (!assocGOFXAccount) {
+  if (!gofxAssocAccount) {
     transaction.add(
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
-        gofxUserAddr,
+        gofxAssocAddr,
         wallet.publicKey,
         GOFX,
+        utils.token.TOKEN_PROGRAM_ID,
+        utils.token.ASSOCIATED_PROGRAM_ID
+      )
+    );
+  }
+  if (!nftAssocAccount) {
+    transaction.add(
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        nftAssocAddr,
+        wallet.publicKey,
+        mintId,
         utils.token.TOKEN_PROGRAM_ID,
         utils.token.ASSOCIATED_PROGRAM_ID
       )
@@ -197,13 +207,9 @@ const deposit = async (
   return launch(wallet, transaction);
 };
 
-const fetchOwned = async (wallet: BaseSignerWalletAdapter): Promise<Nft[]> => {
-  if (!wallet.publicKey) {
-    throw "No publicKey";
-  }
-
+const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
   const tokensRaw = await connection.getParsedTokenAccountsByOwner(
-    wallet.publicKey,
+    walletAddress,
     {
       programId: utils.token.TOKEN_PROGRAM_ID,
     }
