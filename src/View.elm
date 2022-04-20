@@ -1114,7 +1114,7 @@ viewStats isMobile =
         |> col
     , [ gradientText "NFTs In-Play"
             |> el [ centerX ]
-      , text "1,137 / 12,366" |> el [ meriendaBold, Font.color brown, centerX ]
+      , text "1,167 / 12,366" |> el [ meriendaBold, Font.color brown, centerX ]
       ]
         |> col
         |> el
