@@ -361,7 +361,13 @@ infoText =
       , text " platform. There will be six total levels and tiers of NFTs as you evolve through the process. Higher tier NFTs will be extremely limited and the rewards will be vast. The first step is to connect your Tier 1 Egg NFT and incubate it for 30 days. We will be tracking usage amongst our platform with on-chain analytics."
       ]
         |> paragraph []
-    , [ text "Those who use our platform the most will be rewarded handsomely." ]
+    , [ text "For more detailed information, check out our documentation "
+      , newTabLink [ Font.underline, hover ]
+            { url = "https://docs.goosefx.io/tutorials/nestquest"
+            , label = text "here"
+            }
+      , text "."
+      ]
         |> paragraph []
     ]
 
