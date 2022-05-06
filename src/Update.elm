@@ -94,15 +94,15 @@ update msg model =
             , Cmd.none
             )
 
-        ConnectResponse val ->
+        ConnectResponse res ->
             ( { model
                 | wallet =
-                    val
+                    res
                         |> Maybe.map
-                            (\state ->
-                                { state
+                            (\wallet ->
+                                { wallet
                                     | stake =
-                                        state.stake
+                                        wallet.stake
                                             |> Maybe.map
                                                 (\stake ->
                                                     { stake
@@ -113,6 +113,9 @@ update msg model =
                                 }
                             )
                 , walletSelect = False
+                , nftIndex = 0
+                , dropdown = False
+                , withdrawComplete = False
               }
             , Cmd.none
             )
@@ -142,7 +145,13 @@ update msg model =
             , Cmd.none
             )
 
-        Convert ->
+        SignTimestamp ->
+            ( model, Ports.signTimestamp () )
+
+        SignResponse _ ->
+            ( model, Cmd.none )
+
+        ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
 
         PlayTheme ->
@@ -155,6 +164,33 @@ update msg model =
                 ( { model | themePlaying = True, playButtonPulse = False }
                 , Ports.playTheme ()
                 )
+
+        NftSelect backwards ->
+            ( { model
+                | nftIndex =
+                    model.wallet
+                        |> unwrap model.nftIndex
+                            (\wallet ->
+                                let
+                                    len =
+                                        List.length wallet.nfts - 1
+                                in
+                                if backwards then
+                                    if model.nftIndex <= 0 then
+                                        len
+
+                                    else
+                                        model.nftIndex - 1
+
+                                else if model.nftIndex >= len then
+                                    0
+
+                                else
+                                    model.nftIndex + 1
+                            )
+              }
+            , Cmd.none
+            )
 
 
 mobileCheckpoints : Int -> Int -> Int -> Int

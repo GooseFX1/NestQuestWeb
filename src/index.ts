@@ -4,9 +4,9 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   SlopeWalletAdapter,
-  LedgerWalletAdapter,
+  //LedgerWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
-import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
+import { BaseMessageSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { web3 } from "@project-serum/anchor";
 import * as txns from "./txns";
 
@@ -18,7 +18,7 @@ const DEBUG = window.location.search.includes("debug=true");
 let theme: null | HTMLAudioElement = null;
 
 // eslint-disable-next-line fp/no-let
-let activeWallet: null | BaseSignerWalletAdapter = null;
+let activeWallet: null | BaseMessageSignerWalletAdapter = null;
 
 const app = Elm.Main.init({
   node: document.getElementById("app"),
@@ -41,7 +41,9 @@ const getWallet = (n: number) => {
         return new SlopeWalletAdapter();
       }
       default: {
-        return new LedgerWalletAdapter();
+        return new PhantomWalletAdapter();
+        // return new LedgerWalletAdapter();
+        // Not assignable to BaseMessageSignerWalletAdapter
       }
     }
   })();
@@ -51,7 +53,7 @@ const getWallet = (n: number) => {
     : null;
 };
 
-const fetchState = async (wallet: BaseSignerWalletAdapter) => {
+const fetchState = async (wallet: BaseMessageSignerWalletAdapter) => {
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
@@ -130,6 +132,27 @@ app.ports.withdraw.subscribe((mintId: string) =>
     if (DEBUG) {
       alert(e);
     }
+  })
+);
+
+app.ports.signTimestamp.subscribe(() =>
+  (async () => {
+    const timestamp = Date.now();
+
+    const encodedMessage = new TextEncoder().encode(timestamp.toString());
+
+    const signedMessage = await activeWallet?.signMessage(encodedMessage);
+
+    if (!signedMessage) {
+      return console.error("empty signature");
+    }
+
+    return app.ports.signResponse.send({
+      timestamp,
+      signature: Buffer.from(signedMessage).toString("hex"),
+    });
+  })().catch((e) => {
+    console.error(e);
   })
 );
 

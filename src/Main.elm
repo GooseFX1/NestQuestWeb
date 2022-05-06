@@ -30,6 +30,7 @@ init flags =
       , scrollStart = flags.screen.height
       , playButtonPulse = True
       , withdrawComplete = False
+      , nftIndex = 0
       }
     , Cmd.none
     )
@@ -41,6 +42,7 @@ subscriptions _ =
     , Ports.stakeResponse Types.StakeResponse
     , Ports.withdrawResponse Types.WithdrawResponse
     , Ports.alreadyStaked Types.AlreadyStaked
+    , Ports.signResponse Types.SignResponse
     , Time.every 10000 Types.Tick
     ]
         |> Sub.batch

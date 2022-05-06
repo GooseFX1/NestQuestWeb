@@ -18,7 +18,8 @@
     "ts-loader": "^9.2.8",
     "typescript": "^4.6.2",
     "webpack": "^5.39.1",
-    "webpack-cli": "^4.7.2"
+    "webpack-cli": "^4.7.2",
+    "zod": "^3.14.4"
   },
   "devDependencies": {
     "elm-hot-webpack-loader": "^1.1.8",

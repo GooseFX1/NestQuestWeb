@@ -1,11 +1,11 @@
-module Types exposing (Flags, Model, Msg(..), Stake, State)
+module Types exposing (Flags, Model, Msg(..), Nft, Stake, Wallet)
 
 import Time exposing (Posix)
 
 
 type alias Model =
     { isMobile : Bool
-    , wallet : Maybe State
+    , wallet : Maybe Wallet
     , themePlaying : Bool
     , scrollIndex : Int
     , walletSelect : Bool
@@ -14,6 +14,7 @@ type alias Model =
     , scrollStart : Int
     , playButtonPulse : Bool
     , withdrawComplete : Bool
+    , nftIndex : Int
     }
 
 
@@ -29,7 +30,7 @@ type alias Screen =
     }
 
 
-type alias State =
+type alias Wallet =
     { address : String
     , stake : Maybe Stake
     , nfts : List Nft
@@ -45,16 +46,17 @@ type alias Stake =
 type alias Nft =
     { mintId : String
     , name : String
+    , tier : Int
     }
 
 
 type Msg
     = Connect
-    | ConnectResponse (Maybe State)
+    | ConnectResponse (Maybe Wallet)
     | PlayTheme
     | Scroll Int
     | Select Int
-    | Convert
+    | ToggleDropdown
     | Disconnect
     | ChangeWallet
     | Incubate
@@ -63,3 +65,6 @@ type Msg
     | StakeResponse (Maybe Stake)
     | WithdrawResponse ()
     | Tick Posix
+    | NftSelect Bool
+    | SignTimestamp
+    | SignResponse { timestamp : Int, signature : String }

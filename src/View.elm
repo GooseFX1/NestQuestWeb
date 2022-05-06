@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Array
 import Duration
 import Element exposing (..)
 import Element.Background as Background
@@ -14,7 +15,7 @@ import Html.Attributes
 import Html.Events
 import Json.Decode as JD
 import Maybe.Extra exposing (isJust, unwrap)
-import Types exposing (Model, Msg(..), Stake, State)
+import Types exposing (Model, Msg(..), Nft, Stake)
 import View.Img as Img
 
 
@@ -60,7 +61,7 @@ view model =
 viewMobile : Model -> Element Msg
 viewMobile model =
     [ [ [ gooseIcon 50
-        , connectButton True (Maybe.map .address model.wallet) model.dropdown
+        , connectButton model.isMobile (Maybe.map .address model.wallet) model.dropdown
         , musicButton model.playButtonPulse model.themePlaying
         ]
             |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
@@ -160,9 +161,10 @@ viewMobile model =
                     , spacing 15
                     ]
                 |> inFront
-            , viewIncubate model.withdrawComplete True model.time model.wallet model.dropdown
+            , viewEggs model
+                |> inFront
             , viewStats True
-                |> el [ width fill, moveDown 190 ]
+                |> el [ width fill, moveDown 280 ]
                 |> inFront
             ]
             { src = "/world-mobile.png", description = "" }
@@ -331,9 +333,10 @@ viewDesktop model =
                 ]
                 { src = "/parchment-desktop.svg", description = "" }
                 |> inFront
-            , viewIncubate model.withdrawComplete False model.time model.wallet model.dropdown
+            , viewEggs model
+                |> inFront
             , viewStats False
-                |> el [ centerX, width <| px 1000, moveDown 650 ]
+                |> el [ centerX, width <| px 1000, moveDown 850 ]
                 |> inFront
             ]
             { src = "/world-desktop.png", description = "" }
@@ -349,6 +352,35 @@ viewDesktop model =
             [ width fill
             , height fill
             ]
+
+
+viewEggs : Model -> Element Msg
+viewEggs model =
+    model.wallet
+        |> unwrap
+            (viewStack model.isMobile
+                (connectButton model.isMobile
+                    (Maybe.map .address model.wallet)
+                    model.dropdown
+                )
+            )
+            (\wallet ->
+                wallet.stake
+                    |> unwrap
+                        (wallet.nfts
+                            |> Array.fromList
+                            |> Array.get model.nftIndex
+                            |> unwrap
+                                (viewEmpty model.isMobile)
+                                (viewIncubate model.withdrawComplete
+                                    (List.length wallet.nfts > 1)
+                                    model.isMobile
+                                )
+                        )
+                        (withdrawButton model.isMobile model.time
+                            >> viewStack model.isMobile
+                        )
+            )
 
 
 infoText : List (Element msg)
@@ -372,8 +404,98 @@ infoText =
     ]
 
 
-viewIncubate : Bool -> Bool -> Int -> Maybe State -> Bool -> Attribute Msg
-viewIncubate withdrawComplete isMobile time wallet dropdown =
+viewStack : Bool -> Element Msg -> Element Msg
+viewStack isMobile elem =
+    let
+        down =
+            if isMobile then
+                80
+
+            else
+                395
+
+        left =
+            if isMobile then
+                0
+
+            else
+                120
+    in
+    [ image
+        [ height <|
+            px
+                (if isMobile then
+                    120
+
+                 else
+                    203
+                )
+        , centerX
+        ]
+        { src = "/egg-pending.png"
+        , description = ""
+        }
+    , elem
+        |> el
+            [ centerX
+            ]
+    ]
+        |> column
+            [ alignRight
+            , moveDown down
+            , moveLeft left
+            ]
+
+
+viewEmpty : Bool -> Element Msg
+viewEmpty isMobile =
+    let
+        down =
+            if isMobile then
+                80
+
+            else
+                395
+
+        left =
+            if isMobile then
+                0
+
+            else
+                120
+    in
+    [ image
+        [ height <|
+            px
+                (if isMobile then
+                    120
+
+                 else
+                    203
+                )
+        , centerX
+        ]
+        { src = "/egg-pending.png"
+        , description = ""
+        }
+    , yellowButton isMobile
+        (gradientText
+            "Incubate Egg"
+        )
+        Nothing
+        |> el
+            [ centerX
+            ]
+    ]
+        |> column
+            [ alignRight
+            , moveDown down
+            , moveLeft left
+            ]
+
+
+viewIncubate : Bool -> Bool -> Bool -> Nft -> Element Msg
+viewIncubate withdrawComplete hasMultiple isMobile nft =
     let
         down =
             if isMobile then
@@ -389,38 +511,25 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
             else
                 120
 
-        activeEgg =
-            wallet
-                |> Maybe.andThen (.nfts >> List.head)
-
-        hasEgg =
-            activeEgg
-                |> isJust
-
-        isStaking =
-            wallet
-                |> unwrap False (.stake >> isJust)
+        tier2 =
+            nft.tier == 2
     in
     [ image
-        [ width <|
+        [ height <|
             px
                 (if isMobile then
                     120
 
                  else
-                    243
+                    203
                 )
         , centerX
-        , activeEgg
-            |> Maybe.andThen
-                (\egg ->
-                    egg.name
-                        |> String.filter ((/=) '\u{0000}')
-                        |> String.split "#"
-                        |> List.reverse
-                        |> List.head
-                        |> Maybe.andThen String.toInt
-                )
+        , nft.name
+            |> String.filter ((/=) nullByte)
+            |> String.split "#"
+            |> List.reverse
+            |> List.head
+            |> Maybe.andThen String.toInt
             |> whenJust
                 (formatInt
                     >> text
@@ -437,7 +546,7 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
                         , meriendaRegular
                         , moveDown
                             (if isMobile then
-                                60
+                                70
 
                              else
                                 130
@@ -446,39 +555,120 @@ viewIncubate withdrawComplete isMobile time wallet dropdown =
                         ]
                 )
             |> inFront
+        , Input.button
+            [ moveDown
+                (if isMobile then
+                    42
+
+                 else
+                    80
+                )
+            , alignLeft
+            , moveLeft
+                (if isMobile then
+                    14
+
+                 else
+                    5
+                )
+            , hover
+            ]
+            { onPress = Just <| NftSelect True
+            , label =
+                image
+                    [ height <| px 60
+                    ]
+                    { src = "/back.png", description = "" }
+            }
+            |> when hasMultiple
+            |> inFront
+        , Input.button
+            [ moveDown
+                (if isMobile then
+                    40
+
+                 else
+                    80
+                )
+            , alignRight
+            , moveRight
+                (if isMobile then
+                    15
+
+                 else
+                    5
+                )
+            , hover
+            ]
+            { onPress = Just <| NftSelect False
+            , label =
+                image
+                    [ height <| px 60
+                    ]
+                    { src = "/next.png", description = "" }
+            }
+            |> when hasMultiple
+            |> inFront
         ]
         { src =
-            if hasEgg || isStaking then
-                "/egg-present.png"
+            if tier2 then
+                "/tier2.png"
 
             else
-                "/egg-pending.png"
+                "/egg-present.png"
         , description = ""
         }
-    , if wallet == Nothing then
-        connectButton isMobile (Maybe.map .address wallet) dropdown
-            |> el [ centerX ]
-
-      else if withdrawComplete then
+    , if withdrawComplete then
         yellowButton isMobile
-            False
             (gradientText "Success")
             Nothing
 
       else
-        wallet
-            |> Maybe.andThen .stake
-            |> unwrap
-                (incubateButton isMobile hasEgg)
-                (withdrawButton isMobile time)
-            |> el [ centerX ]
+        yellowButton isMobile
+            (gradientText
+                (if tier2 then
+                    "Upgrade"
+
+                 else
+                    "Incubate Egg"
+                )
+            )
+            (if tier2 then
+                Just SignTimestamp
+
+             else
+                Just Incubate
+            )
+            |> el
+                [ centerX
+                , let
+                    ( hd, txt ) =
+                        if tier2 then
+                            ( "Tier 2"
+                            , "You will need to stake GOFX for 7 days to upgrade this NFT."
+                            )
+
+                        else
+                            ( "Tier 1"
+                            , "This egg will need to be staked for 30 days to upgrade."
+                            )
+                  in
+                  [ gradientText hd
+                        |> el [ centerX, Font.size 22 ]
+                  , [ text txt ]
+                        |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
+                  ]
+                    |> column
+                        [ Background.color sand, Border.width 3, Border.color white, Border.rounded 25, padding 15, moveDown 10, centerX, spacing 15 ]
+                    |> when (not isMobile)
+                    |> below
+                ]
     ]
         |> column
             [ alignRight
             , moveDown down
             , moveLeft left
             ]
-        |> inFront
 
 
 getEgg : Bool -> Element msg
@@ -536,6 +726,7 @@ getEgg isMobile =
             ]
                 |> column []
         }
+        |> when False
 
 
 bg : Color
@@ -755,19 +946,6 @@ musicButton pulse playing =
         }
 
 
-incubateButton : Bool -> Bool -> Element Msg
-incubateButton isMobile hasEgg =
-    yellowButton isMobile
-        (not hasEgg)
-        (gradientText "Incubate Egg")
-        (if hasEgg then
-            Just Incubate
-
-         else
-            Nothing
-        )
-
-
 withdrawButton : Bool -> Int -> Stake -> Element Msg
 withdrawButton isMobile time stake =
     let
@@ -781,7 +959,6 @@ withdrawButton isMobile time stake =
             time >= stake.stakingStart
     in
     yellowButton isMobile
-        (not canWithdraw)
         (if canWithdraw then
             gradientText "Evolve"
 
@@ -850,7 +1027,6 @@ calcCountdown diff =
 connectButton : Bool -> Maybe String -> Bool -> Element Msg
 connectButton isMobile addr dropdown =
     [ yellowButton isMobile
-        False
         (addr
             |> unwrap
                 (gradientText "Connect Wallet")
@@ -862,13 +1038,12 @@ connectButton isMobile addr dropdown =
                     ]
                         |> row [ spacing 10 ]
                 )
-            |> el [ hover ]
         )
         (if addr == Nothing then
             Just Connect
 
          else
-            Just Convert
+            Just ToggleDropdown
         )
     , el
         [ [ Input.button [ centerX, hover ]
@@ -1112,30 +1287,33 @@ viewStats isMobile =
                 30
 
         col =
-            column [ Background.color sand, Border.width 3, Border.color white, Border.rounded 25, padding pd, spacing sp ]
+            column
+                [ Background.color sand
+                , Border.width 3
+                , Border.color white
+                , Border.rounded 25
+                , padding pd
+                , spacing sp
+                ]
     in
     [ [ gradientText "Total Minted NFTs"
       , text "12,366 / 25,000" |> el [ meriendaBold, Font.color brown, centerX ]
       ]
         |> col
+        |> el
+            [ moveUp
+                (if isMobile then
+                    80
+
+                 else
+                    200
+                )
+            ]
     , [ gradientText "NFTs In-Play"
             |> el [ centerX ]
       , text "1,167 / 12,366" |> el [ meriendaBold, Font.color brown, centerX ]
       ]
         |> col
-        |> el
-            [ paddingEach
-                { top =
-                    if isMobile then
-                        80
-
-                    else
-                        200
-                , bottom = 0
-                , left = 0
-                , right = 0
-                }
-            ]
     ]
         |> row [ width fill, spaceEvenly, Font.size fnt ]
 
@@ -1195,8 +1373,8 @@ formatInt =
             }
 
 
-yellowButton : Bool -> Bool -> Element msg -> Maybe msg -> Element msg
-yellowButton isMobile shouldFade elem msg =
+yellowButton : Bool -> Element msg -> Maybe msg -> Element msg
+yellowButton isMobile elem msg =
     let
         w =
             if isMobile then
@@ -1220,10 +1398,19 @@ yellowButton isMobile shouldFade elem msg =
         , Border.rounded 30
         , Background.color sand
         , Font.size fnt
-        , whenAttr shouldFade fade
+        , if isJust msg then
+            hover
+
+          else
+            fade
         ]
         { onPress = msg
         , label =
             elem
                 |> el [ centerX ]
         }
+
+
+nullByte : Char
+nullByte =
+    '\u{0000}'

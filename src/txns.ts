@@ -6,6 +6,7 @@ import { Account } from "@metaplex-foundation/mpl-core";
 import { web3, utils } from "@project-serum/anchor";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
+import { z } from "zod";
 import { deposit as depositFn } from "./codegen/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
 import { Stake } from "./codegen/accounts/Stake";
@@ -25,7 +26,12 @@ const connection = new web3.Connection(
 interface Nft {
   mintId: string;
   name: string;
+  tier: number;
 }
+
+const Offchain = z.object({
+  description: z.string(),
+});
 
 const isNotNull = <T>(item: T | null): item is T => item !== null;
 
@@ -247,10 +253,18 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
     .filter(isNotNull)
     .filter((md) => md.updateAuthority.equals(UPDATE_AUTH));
 
-  const data = gooseNfts.map((metadata) => ({
-    mintId: metadata.mint.toString(),
-    name: metadata.data.name,
-  }));
+  const data = await Promise.all(
+    gooseNfts.map(async (metadata) => {
+      const res = await fetch(metadata.data.uri);
+      const json = await res.json();
+      const offchain = Offchain.parse(json);
+      return {
+        mintId: metadata.mint.toString(),
+        name: metadata.data.name,
+        tier: offchain.description.includes("hatchling") ? 2 : 1,
+      };
+    })
+  );
 
   return data;
 };
