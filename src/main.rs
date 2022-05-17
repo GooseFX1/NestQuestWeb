@@ -54,7 +54,7 @@ async fn tier3_handler(
             .expect("system/unix time fail")
             .as_millis();
 
-        if (now_unix - 30_000) < body.timestamp {
+        if (now_unix - 30_000) > body.timestamp {
             return Err(refuse());
         };
 
@@ -69,11 +69,13 @@ async fn tier3_handler(
 
         let rpc = rpc_arc.lock().await;
 
-        // TODO: Check stake balance here
-        //let bal = rpc.get_token_account_balance(&gofx_stake).unwrap();
-        //if bal.ui_amount.unwrap() < 25.0 {
-        //return Ok(refuse());
-        //};
+        let account_data = rpc.get_account_data(&gofx_stake).unwrap();
+
+        let stake_amount = u64::from_le_bytes(account_data[56..64].try_into().unwrap());
+
+        if stake_amount < 25_000_000_000 {
+            return Err(refuse());
+        }
 
         let created_at = get_account_creation_date(&rpc, &gofx_stake).map_err(|_| refuse())?;
 
@@ -118,3 +120,5 @@ fn build_response(code: StatusCode, message: &str) -> warp::reply::WithStatus<wa
 fn refuse() -> warp::reply::WithStatus<warp::reply::Json> {
     build_response(StatusCode::BAD_REQUEST, "There was a problem.")
 }
+
+const _TIER_3_DESC: &str = "The training has paid off and the Hatchling has evolved into a much stronger Gosling. The Gosling still emits a dangerous flame from its mouth which appears to be related to its prior Aura. Additional training is required to evolve again.";
