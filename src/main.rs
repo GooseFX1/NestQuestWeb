@@ -29,14 +29,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let aws_client = Client::new(&shared_config);
     let solana_client = RpcClient::new(env.rpc.to_string());
 
-    let routes = warp::post()
+    let tier3_route = warp::post()
         .and(with_val(aws_client))
         .and(with_val(Arc::new(Mutex::new(solana_client))))
         .and(warp::filters::body::json())
         .and(warp::path("tier3"))
         .and_then(tier3_handler);
 
-    warp::serve(routes).run(([0, 0, 0, 0], env.port)).await;
+    let ping_route = warp::get().and(warp::path("healthz")).map(ping_handler);
+
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_header("content-type")
+        .allow_methods(&[warp::http::Method::GET, warp::http::Method::POST]);
+
+    let routes = ping_route.or(tier3_route);
+
+    warp::serve(routes.with(cors))
+        .run(([0, 0, 0, 0], env.port))
+        .await;
 
     Ok(())
 }
@@ -100,6 +111,11 @@ async fn tier3_handler(
         Ok(val) => Ok(val),
         Err(val) => Ok(val),
     }
+}
+
+fn ping_handler() -> impl warp::Reply {
+    let response = serde_json::json!({ "status": "OK" });
+    warp::reply::json(&response)
 }
 
 fn with_val<T: Clone + std::marker::Send>(
