@@ -13,10 +13,7 @@ use std::{
 
 const AWS_BUCKET: &str = "gfxnestquest";
 
-pub fn get_account_creation_date(
-    rpc: &RpcClient,
-    addr: &Pubkey,
-) -> Result<DateTime<Utc>, anyhow::Error> {
+pub fn get_account_creation_date(rpc: &RpcClient, addr: &Pubkey) -> anyhow::Result<DateTime<Utc>> {
     fn fetch(
         rpc: &RpcClient,
         addr: &Pubkey,
@@ -77,7 +74,7 @@ pub async fn aws_put_object(
     client: &Client,
     metadata: &Offchain,
     nft_id: usize,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let raw_body = serde_json::to_vec(&metadata)?;
     let body = ByteStream::from(raw_body);
 
@@ -96,7 +93,7 @@ pub fn verify_signature(
     message: &str,
     signature: &str,
     user_wallet: &Pubkey,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let hex = hex::decode(signature.to_string())?;
 
     let sig_bytes: [u8; 64] = hex
@@ -106,9 +103,8 @@ pub fn verify_signature(
     let pubk = ed25519_dalek::PublicKey::from_bytes(&user_wallet.to_bytes())?;
 
     pubk.verify(
-        &message.as_bytes(),
+        &format!("NestQuest verify:\n{}", message).as_bytes(),
         &ed25519_dalek::Signature::from_bytes(&sig_bytes)?,
-    )?;
-
-    Ok(())
+    )
+    .map_err(|e| e.into())
 }

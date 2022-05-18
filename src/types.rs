@@ -1,8 +1,8 @@
 #[derive(serde::Deserialize)]
 pub struct UpgradeBody {
     pub address: String,
+    pub mint_id: String,
     pub signature: String,
-    pub timestamp: u128,
 }
 
 #[derive(serde::Serialize)]
@@ -20,8 +20,7 @@ pub struct Offchain {
     pub image: url::Url,
     pub external_url: url::Url,
     pub attributes: Vec<Attribute>,
-    #[serde(skip_deserializing)]
-    pub collection: Option<Collection>,
+    pub collection: Collection,
     pub properties: Properties,
 }
 

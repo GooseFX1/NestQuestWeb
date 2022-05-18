@@ -1144,6 +1144,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "foreign-types"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
+dependencies = [
+ "foreign-types-shared",
+]
+
+[[package]]
+name = "foreign-types-shared"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+
+[[package]]
 name = "form_urlencoded"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1514,6 +1529,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper-tls"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
+dependencies = [
+ "bytes",
+ "hyper",
+ "native-tls",
+ "tokio",
+ "tokio-native-tls",
+]
+
+[[package]]
 name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1800,6 +1828,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "mpl-token-metadata"
+version = "1.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d71fddb77eb409ffee7e4662bc12f0535b5329729e18db6c536c9f8e8a37d39"
+dependencies = [
+ "arrayref",
+ "borsh",
+ "mpl-token-vault",
+ "num-derive",
+ "num-traits",
+ "shank",
+ "solana-program",
+ "spl-associated-token-account",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
+name = "mpl-token-vault"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36789b99869391fcc1041509729db1183d2abb0ffe62b165fadd9fffba391fde"
+dependencies = [
+ "borsh",
+ "num-derive",
+ "num-traits",
+ "shank",
+ "solana-program",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
 name = "multipart"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1818,20 +1879,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "native-tls"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd7e2f3618557f980e0b17e8856252eee3c97fa12c54dff0ca290fb6266ca4a9"
+dependencies = [
+ "lazy_static",
+ "libc",
+ "log",
+ "openssl",
+ "openssl-probe",
+ "openssl-sys",
+ "schannel",
+ "security-framework",
+ "security-framework-sys",
+ "tempfile",
+]
+
+[[package]]
 name = "nestquest"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "aws-config",
  "aws-sdk-s3",
+ "borsh",
  "chrono",
  "ed25519-dalek",
  "envy",
  "hex",
+ "mpl-token-metadata",
+ "reqwest",
  "serde",
  "serde_json",
  "solana-client",
  "solana-sdk",
+ "spl-associated-token-account",
  "tokio",
  "url",
  "warp",
@@ -1957,10 +2040,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
+name = "openssl"
+version = "0.10.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb81a6430ac911acb25fe5ac8f1d2af1b4ea8a4fdfda0f1ee4292af2e2d8eb0e"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "foreign-types",
+ "libc",
+ "once_cell",
+ "openssl-macros",
+ "openssl-sys",
+]
+
+[[package]]
+name = "openssl-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b501e44f11665960c7e7fcf062c7d96a14ade4aa98116c004b2e37b5be7d736c"
+dependencies = [
+ "proc-macro2 1.0.39",
+ "quote 1.0.18",
+ "syn 1.0.95",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.73"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d5fd19fb3e0a8191c1e34935718976a3e70c112ab9a24af6d7cadccd9d90bc0"
+dependencies = [
+ "autocfg",
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "ouroboros"
@@ -2330,11 +2452,13 @@ dependencies = [
  "http-body",
  "hyper",
  "hyper-rustls 0.23.0",
+ "hyper-tls",
  "ipnet",
  "js-sys",
  "lazy_static",
  "log",
  "mime",
+ "native-tls",
  "percent-encoding",
  "pin-project-lite",
  "rustls 0.20.5",
@@ -2343,6 +2467,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "tokio",
+ "tokio-native-tls",
  "tokio-rustls 0.23.4",
  "url",
  "wasm-bindgen",
@@ -2653,6 +2778,40 @@ dependencies = [
  "digest 0.9.0",
  "keccak",
  "opaque-debug",
+]
+
+[[package]]
+name = "shank"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9cfd616747d1ce69f15e62ea30589e393115e4b884d7c1cbceb751b8753e95d"
+dependencies = [
+ "shank_macro",
+]
+
+[[package]]
+name = "shank_macro"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a27d3b536acc60a3ff359181d3a912d10b91539f85909447ca7d33ea0a91d56"
+dependencies = [
+ "proc-macro2 1.0.39",
+ "quote 1.0.18",
+ "shank_macro_impl",
+ "syn 1.0.95",
+]
+
+[[package]]
+name = "shank_macro_impl"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7466a15559fd11aeb5fe12a700923f75bb4eaa7bc90962f2bd822708698ab5d"
+dependencies = [
+ "anyhow",
+ "proc-macro2 1.0.39",
+ "quote 1.0.18",
+ "serde",
+ "syn 1.0.95",
 ]
 
 [[package]]
@@ -3562,6 +3721,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-native-tls"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
+dependencies = [
+ "native-tls",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-rustls"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3855,6 +4024,12 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "vcpkg"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vec_map"
