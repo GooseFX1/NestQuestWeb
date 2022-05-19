@@ -1,14 +1,16 @@
 module Main exposing (main)
 
 import Browser
-import Ports
+import InteropDefinitions exposing (Flags, ToElm(..))
+import InteropPorts
+import Result.Extra exposing (unpack)
 import Time
-import Types exposing (Flags, Model, Msg)
+import Types exposing (Model, Msg)
 import Update exposing (update)
 import View exposing (view)
 
 
-main : Program Flags Model Msg
+main : Program InteropDefinitions.Flags Model Msg
 main =
     Browser.element
         { init = init
@@ -38,11 +40,28 @@ init flags =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    [ Ports.connectResponse Types.ConnectResponse
-    , Ports.stakeResponse Types.StakeResponse
-    , Ports.withdrawResponse Types.WithdrawResponse
-    , Ports.alreadyStaked Types.AlreadyStaked
-    , Ports.signResponse Types.SignResponse
-    , Time.every 10000 Types.Tick
+    [ Time.every 10000 Types.Tick
+    , InteropPorts.toElm
+        |> Sub.map
+            (unpack
+                Types.PortFail
+                (\msg ->
+                    case msg of
+                        AlreadyStaked val ->
+                            Types.AlreadyStaked val
+
+                        ConnectResponse val ->
+                            Types.ConnectResponse val
+
+                        StakeResponse val ->
+                            Types.StakeResponse val
+
+                        WithdrawResponse ->
+                            Types.WithdrawResponse
+
+                        SignResponse val ->
+                            Types.SignResponse val
+                )
+            )
     ]
         |> Sub.batch

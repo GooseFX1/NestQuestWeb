@@ -1,7 +1,13 @@
 module Update exposing (update)
 
+import Helpers.Http exposing (parseError)
+import Http
+import InteropDefinitions
+import InteropPorts
+import Json.Decode as JD
+import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
-import Ports
+import Result.Extra exposing (unpack)
 import Time
 import Types exposing (Model, Msg(..))
 
@@ -14,6 +20,14 @@ update msg model =
             , Cmd.none
             )
 
+        PortFail err ->
+            ( model
+            , err
+                |> JD.errorToString
+                |> InteropDefinitions.Log
+                |> InteropPorts.fromElm
+            )
+
         Connect ->
             ( { model | walletSelect = not model.walletSelect }
             , Cmd.none
@@ -23,12 +37,18 @@ update msg model =
             ( model
             , model.wallet
                 |> Maybe.andThen (.nfts >> List.head)
-                |> unwrap Cmd.none (.mintId >> Ports.stake)
+                |> unwrap Cmd.none
+                    (.mintId
+                        >> InteropDefinitions.Stake
+                        >> InteropPorts.fromElm
+                    )
             )
 
         Withdraw mintId ->
             ( model
-            , Ports.withdraw mintId
+            , mintId
+                |> InteropDefinitions.Withdraw
+                |> InteropPorts.fromElm
             )
 
         Disconnect ->
@@ -36,10 +56,11 @@ update msg model =
                 | wallet = Nothing
                 , dropdown = False
               }
-            , Ports.disconnect ()
+            , InteropDefinitions.Disconnect
+                |> InteropPorts.fromElm
             )
 
-        WithdrawResponse _ ->
+        WithdrawResponse ->
             ( { model
                 | wallet =
                     model.wallet
@@ -76,11 +97,16 @@ update msg model =
                 , dropdown = False
                 , walletSelect = True
               }
-            , Ports.disconnect ()
+            , InteropDefinitions.Disconnect
+                |> InteropPorts.fromElm
             )
 
         Select n ->
-            ( model, Ports.connect n )
+            ( model
+            , n
+                |> InteropDefinitions.Connect
+                |> InteropPorts.fromElm
+            )
 
         Scroll scrollDepth ->
             ( { model
@@ -142,14 +168,58 @@ update msg model =
                                         )
                             )
               }
-            , Cmd.none
+            , InteropDefinitions.Log "Your egg was staked successfully."
+                |> InteropPorts.fromElm
             )
 
-        SignTimestamp ->
-            ( model, Ports.signTimestamp () )
+        SignTimestamp mintId ->
+            ( model
+            , InteropDefinitions.SignTimestamp mintId
+                |> InteropPorts.fromElm
+            )
 
-        SignResponse _ ->
-            ( model, Cmd.none )
+        SignResponse res ->
+            ( model
+            , model.wallet
+                |> unwrap Cmd.none
+                    (\wallet ->
+                        upgradeTier2 wallet.address res
+                    )
+            )
+
+        UpgradeCb res ->
+            res
+                |> unpack
+                    (\err ->
+                        ( model
+                        , InteropDefinitions.Log (parseError err)
+                            |> InteropPorts.fromElm
+                        )
+                    )
+                    (\mintId ->
+                        ( { model
+                            | wallet =
+                                model.wallet
+                                    |> Maybe.map
+                                        (\wallet ->
+                                            { wallet
+                                                | nfts =
+                                                    wallet.nfts
+                                                        |> List.map
+                                                            (\nft ->
+                                                                if nft.mintId == mintId then
+                                                                    { nft | tier = Types.Tier3 }
+
+                                                                else
+                                                                    nft
+                                                            )
+                                            }
+                                        )
+                          }
+                        , InteropDefinitions.Alert "Your hatchling has been successfully upgraded."
+                            |> InteropPorts.fromElm
+                        )
+                    )
 
         ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
@@ -157,12 +227,14 @@ update msg model =
         PlayTheme ->
             if model.themePlaying then
                 ( { model | themePlaying = False }
-                , Ports.stopTheme ()
+                , InteropDefinitions.StopTheme
+                    |> InteropPorts.fromElm
                 )
 
             else
                 ( { model | themePlaying = True, playButtonPulse = False }
-                , Ports.playTheme ()
+                , InteropDefinitions.PlayTheme
+                    |> InteropPorts.fromElm
                 )
 
         NftSelect backwards ->
@@ -282,3 +354,18 @@ desktopCheckpoints screenHeight currentIndex scrollVal =
 thirtyDaysSeconds : Int
 thirtyDaysSeconds =
     2592000
+
+
+upgradeTier2 : String -> Types.SignatureData -> Cmd Msg
+upgradeTier2 address data =
+    Http.post
+        { url = "https://nestquest-api.goosefx.io/tier3"
+        , body =
+            [ ( "address", JE.string address )
+            , ( "mint_id", JE.string data.mintId )
+            , ( "signature", JE.string data.signature )
+            ]
+                |> JE.object
+                |> Http.jsonBody
+        , expect = Http.expectJson UpgradeCb JD.string
+        }

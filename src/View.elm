@@ -15,7 +15,7 @@ import Html.Attributes
 import Html.Events
 import Json.Decode as JD
 import Maybe.Extra exposing (isJust, unwrap)
-import Types exposing (Model, Msg(..), Nft, Stake)
+import Types exposing (Model, Msg(..), Nft, Stake, Tier(..))
 import View.Img as Img
 
 
@@ -510,9 +510,6 @@ viewIncubate withdrawComplete hasMultiple isMobile nft =
 
             else
                 120
-
-        tier2 =
-            nft.tier == 2
     in
     [ image
         [ height <|
@@ -611,11 +608,15 @@ viewIncubate withdrawComplete hasMultiple isMobile nft =
             |> inFront
         ]
         { src =
-            if tier2 then
-                "/tier2.png"
+            case nft.tier of
+                Tier1 ->
+                    "/egg-present.png"
 
-            else
-                "/egg-present.png"
+                Tier2 ->
+                    "/tier2.png"
+
+                Tier3 ->
+                    "/tier3.png"
         , description = ""
         }
     , if withdrawComplete then
@@ -626,32 +627,46 @@ viewIncubate withdrawComplete hasMultiple isMobile nft =
       else
         yellowButton isMobile
             (gradientText
-                (if tier2 then
-                    "Upgrade"
+                (case nft.tier of
+                    Tier1 ->
+                        "Incubate Egg"
 
-                 else
-                    "Incubate Egg"
+                    Tier2 ->
+                        "Upgrade"
+
+                    Tier3 ->
+                        "..."
                 )
             )
-            (if tier2 then
-                Just SignTimestamp
+            (case nft.tier of
+                Tier1 ->
+                    Just Incubate
 
-             else
-                Just Incubate
+                Tier2 ->
+                    Just <| SignTimestamp nft.mintId
+
+                Tier3 ->
+                    Nothing
             )
             |> el
                 [ centerX
                 , let
                     ( hd, txt ) =
-                        if tier2 then
-                            ( "Tier 2"
-                            , "You will need to stake GOFX for 7 days to upgrade this NFT."
-                            )
+                        case nft.tier of
+                            Tier1 ->
+                                ( "Tier 1"
+                                , "This egg will need to be staked for 30 days to upgrade."
+                                )
 
-                        else
-                            ( "Tier 1"
-                            , "This egg will need to be staked for 30 days to upgrade."
-                            )
+                            Tier2 ->
+                                ( "Tier 2"
+                                , "You will need to stake GOFX for 7 days to upgrade this NFT."
+                                )
+
+                            Tier3 ->
+                                ( "Tier 3"
+                                , "Your Gosling is growing stronger."
+                                )
                   in
                   [ gradientText hd
                         |> el [ centerX, Font.size 22 ]

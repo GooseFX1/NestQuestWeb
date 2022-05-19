@@ -10,7 +10,7 @@ import { BaseMessageSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { web3 } from "@project-serum/anchor";
 import * as txns from "./txns";
 
-const { Elm } = require("./Main.elm");
+import { Elm, FromElm } from "./Main.elm";
 
 const DEBUG = window.location.search.includes("debug=true");
 
@@ -71,7 +71,7 @@ const fetchState = async (wallet: BaseMessageSignerWalletAdapter) => {
   };
 };
 
-app.ports.playTheme.subscribe(() => {
+const playTheme = () => {
   if (theme) {
     return theme.play();
   }
@@ -83,17 +83,17 @@ app.ports.playTheme.subscribe(() => {
     theme = audio;
     audio.play();
   });
-});
+};
 
-app.ports.stopTheme.subscribe(() => {
+const stopTheme = () => {
   if (!theme) {
     return;
   }
 
   theme.pause();
-});
+};
 
-app.ports.stake.subscribe((mintId: string) =>
+const stake = (mintId: string) =>
   (async () => {
     if (!(activeWallet && activeWallet.connected)) {
       return;
@@ -102,22 +102,30 @@ app.ports.stake.subscribe((mintId: string) =>
 
     if (await txns.hasBeenStaked(mintPK)) {
       alert("This NFT has already been staked.");
-      return app.ports.alreadyStaked.send(mintPK.toString());
+      return app.ports.interopToElm.send({
+        tag: "alreadyStaked",
+        data: mintId.toString(),
+      });
     }
 
     const res = await txns.deposit(activeWallet, mintPK);
     console.log(res);
-    return app.ports.stakeResponse.send({ stakingStart: Date.now(), mintId });
+    return app.ports.interopToElm.send({
+      tag: "stakeResponse",
+      data: { stakingStart: Date.now(), mintId },
+    });
   })().catch((e) => {
     console.error(e);
     if (DEBUG) {
       alert(e);
     }
-    return app.ports.stakeResponse.send(null);
-  })
-);
+    return app.ports.interopToElm.send({
+      tag: "stakeResponse",
+      data: null,
+    });
+  });
 
-app.ports.withdraw.subscribe((mintId: string) =>
+const withdraw = (mintId: string) =>
   (async () => {
     if (!(activeWallet && activeWallet.connected)) {
       return;
@@ -126,20 +134,19 @@ app.ports.withdraw.subscribe((mintId: string) =>
 
     const res = await txns.withdraw(activeWallet, mintPK);
     console.log(res);
-    return app.ports.withdrawResponse.send(null);
+    return app.ports.interopToElm.send({ tag: "withdrawResponse" });
   })().catch((e) => {
     console.error(e);
     if (DEBUG) {
       alert(e);
     }
-  })
-);
+  });
 
-app.ports.signTimestamp.subscribe(() =>
+const signTimestamp = (mintId: string) =>
   (async () => {
-    const timestamp = Date.now();
-
-    const encodedMessage = new TextEncoder().encode(timestamp.toString());
+    const encodedMessage = new TextEncoder().encode(
+      "NestQuest verify:\n" + mintId
+    );
 
     const signedMessage = await activeWallet?.signMessage(encodedMessage);
 
@@ -147,22 +154,27 @@ app.ports.signTimestamp.subscribe(() =>
       return console.error("empty signature");
     }
 
-    return app.ports.signResponse.send({
-      timestamp,
-      signature: Buffer.from(signedMessage).toString("hex"),
+    return app.ports.interopToElm.send({
+      tag: "signResponse",
+      data: {
+        mintId,
+        signature: Buffer.from(signedMessage).toString("hex"),
+      },
     });
   })().catch((e) => {
     console.error(e);
-  })
-);
+  });
 
-app.ports.connect.subscribe((id: number) =>
+const connect = (id: number) =>
   (async () => {
     const wallet = getWallet(id);
 
     if (!wallet) {
       console.log("no wallet");
-      return app.ports.connectResponse.send(null);
+      return app.ports.interopToElm.send({
+        tag: "connectResponse",
+        data: null,
+      });
     }
 
     await wallet.connect();
@@ -170,15 +182,61 @@ app.ports.connect.subscribe((id: number) =>
     // eslint-disable-next-line fp/no-mutation
     activeWallet = wallet;
 
-    return app.ports.connectResponse.send(await fetchState(wallet));
+    return app.ports.interopToElm.send({
+      tag: "connectResponse",
+      data: await fetchState(wallet),
+    });
   })().catch((e) => {
     console.error(e);
-    return app.ports.connectResponse.send(null);
-  })
-);
+    return app.ports.interopToElm.send({ tag: "connectResponse", data: null });
+  });
 
-app.ports.disconnect.subscribe(async () => {
+const disconnect = async () => {
   if (activeWallet && activeWallet.connected) {
     await activeWallet.disconnect();
   }
-});
+};
+
+app.ports.interopFromElm.subscribe((fromElm) => handlePorts(fromElm));
+
+// Returning a boolean ensures the switch statement is exhaustive.
+const handlePorts = (fromElm: FromElm): boolean => {
+  switch (fromElm.tag) {
+    case "connect": {
+      connect(fromElm.data);
+      return true;
+    }
+    case "disconnect": {
+      disconnect();
+      return true;
+    }
+    case "stake": {
+      stake(fromElm.data);
+      return true;
+    }
+    case "signTimestamp": {
+      signTimestamp(fromElm.data);
+      return true;
+    }
+    case "withdraw": {
+      withdraw(fromElm.data);
+      return true;
+    }
+    case "stopTheme": {
+      stopTheme();
+      return true;
+    }
+    case "playTheme": {
+      playTheme();
+      return true;
+    }
+    case "log": {
+      console.log(fromElm.data);
+      return true;
+    }
+    case "alert": {
+      alert(fromElm.data);
+      return true;
+    }
+  }
+};
