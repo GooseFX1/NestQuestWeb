@@ -261,9 +261,9 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
       return {
         mintId: metadata.mint.toString(),
         name: metadata.data.name,
-        tier: offchain.description.includes("hatchling has emerged")
+        tier: offchain.description.includes("stronger Gosling")
           ? 3
-          : offchain.description.includes("hatchling")
+          : offchain.description.includes("hatchling has emerged")
           ? 2
           : 1,
       };
