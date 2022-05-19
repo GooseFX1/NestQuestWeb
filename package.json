@@ -1,7 +1,8 @@
 {
   "scripts": {
     "build": "webpack",
-    "watch": "webpack serve"
+    "watch": "webpack serve",
+    "gen": "elm-ts-interop --output src/Main.elm.d.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "^0.6.0",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "elm-hot-webpack-loader": "^1.1.8",
+    "elm-ts-interop": "^0.0.8",
     "webpack-dev-server": "^4.1.0"
   }
 }
