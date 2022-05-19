@@ -4,7 +4,7 @@ use borsh::de::BorshDeserialize;
 use mpl_token_metadata::state::Metadata;
 use nestquest::{
     helpers::{aws_put_object, get_account_creation_date, get_gfx_stake_address, verify_signature},
-    types::{Offchain, UpgradeBody},
+    types::{Attribute, Offchain, PropertiesFile, UpgradeBody},
 };
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
@@ -104,7 +104,7 @@ async fn tier3_handler(
 
         let mut offchain_metadata = get_tier2_metadata(&http_client, &metadata_url).await?;
 
-        offchain_metadata.description = TIER_3_DESC.to_string();
+        upgrade_metadata(&mut offchain_metadata)?;
 
         let nft_id = get_nft_id(&metadata_url, &metadata)?;
 
@@ -177,6 +177,63 @@ async fn get_tier2_metadata(
     } else {
         Ok(data)
     }
+}
+
+fn build_attrs(body: &str, flame: &str, aura: &str) -> Vec<Attribute> {
+    vec![
+        Attribute {
+            trait_type: "Body".to_string(),
+            value: body.to_string(),
+        },
+        Attribute {
+            trait_type: "Flame".to_string(),
+            value: flame.to_string(),
+        },
+        Attribute {
+            trait_type: "Aura".to_string(),
+            value: aura.to_string(),
+        },
+    ]
+}
+
+fn upgrade_metadata(metadata: &mut Offchain) -> anyhow::Result<()> {
+    let body = metadata
+        .attributes
+        .iter()
+        .find(|field| field.trait_type == "Body")
+        .ok_or(anyhow!("Body attribute not found: {}", metadata.name))?
+        .value
+        .clone();
+
+    let attrs_result = match &*body {
+        "Black" => Ok(build_attrs(&body, "Plague", "Death")),
+        "Blue" => Ok(build_attrs(&body, "Frost", "Water")),
+        "Gold" => Ok(build_attrs(&body, "Lightning", "Life")),
+        "Green" => Ok(build_attrs(&body, "Growth", "Forest")),
+        "Orange" => Ok(build_attrs(&body, "Molten", "Earth")),
+        "Purple" => Ok(build_attrs(&body, "Heart", "Love")),
+        "Red" => Ok(build_attrs(&body, "Fire", "Sun")),
+        _ => Err(anyhow!("Invalid body attribute: {}", metadata.name)),
+    };
+
+    let attrs = attrs_result?;
+
+    let img = url::Url::from_str(&format!(
+        "https://gfxnestquest.s3.ap-south-1.amazonaws.com/img/tier3/{}.png",
+        &body.to_lowercase()
+    ))?;
+
+    let files = vec![PropertiesFile {
+        uri: img.clone(),
+        type_: "image/png".to_string(),
+    }];
+
+    metadata.description = TIER_3_DESC.to_string();
+    metadata.image = img;
+    metadata.attributes = attrs;
+    metadata.properties.files = files;
+
+    Ok(())
 }
 
 fn get_nft_id(metadata_url: &url::Url, metadata: &Metadata) -> anyhow::Result<usize> {

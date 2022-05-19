@@ -11,7 +11,7 @@ pub struct ErrorMessage {
     pub message: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Offchain {
     pub name: String,
     pub symbol: String,
@@ -24,32 +24,32 @@ pub struct Offchain {
     pub properties: Properties,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Attribute {
     pub trait_type: String,
     pub value: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Creator {
     pub address: String,
     pub share: usize,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Properties {
     pub files: Vec<PropertiesFile>,
     pub category: String,
     pub creators: Vec<Creator>,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct Collection {
     pub name: String,
     pub family: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct PropertiesFile {
     pub uri: url::Url,
     #[serde(rename = "type")]
