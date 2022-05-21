@@ -253,24 +253,30 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
     .filter(isNotNull)
     .filter((md) => md.updateAuthority.equals(UPDATE_AUTH));
 
-  const data = await Promise.all(
-    gooseNfts.map(async (metadata) => {
-      const res = await fetch(metadata.data.uri);
-      const json = await res.json();
-      const offchain = Offchain.parse(json);
-      return {
-        mintId: metadata.mint.toString(),
-        name: metadata.data.name,
-        tier: offchain.description.includes("stronger Gosling")
-          ? 3
-          : offchain.description.includes("hatchling has emerged")
-          ? 2
-          : 1,
-      };
-    })
-  );
+  const data = await Promise.all(gooseNfts.map(parseNft));
 
   return data;
 };
 
-export { withdraw, hasBeenStaked, fetchOwned, fetchStake, deposit };
+const parseNft = async (metadata: Metadata): Promise<Nft> => {
+  const res = await fetch(metadata.data.uri);
+  const json = await res.json();
+  const offchain = Offchain.parse(json);
+  return {
+    mintId: metadata.mint.toString(),
+    name: metadata.data.name,
+    tier: offchain.description.includes("stronger Gosling")
+      ? 3
+      : offchain.description.includes("hatchling has emerged")
+      ? 2
+      : 1,
+  };
+};
+
+const fetchNFT = async (mintId: web3.PublicKey): Promise<Nft> => {
+  const pda = await getMetadataPDA(mintId);
+  const metadata = await Metadata.fromAccountAddress(connection, pda);
+  return parseNft(metadata);
+};
+
+export { withdraw, hasBeenStaked, fetchOwned, fetchStake, deposit, fetchNFT };

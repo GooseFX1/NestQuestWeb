@@ -8,6 +8,7 @@ import Json.Decode as JD
 import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
 import Result.Extra exposing (unpack)
+import Ticks
 import Time
 import Types exposing (Model, Msg(..))
 
@@ -28,24 +29,30 @@ update msg model =
                 |> InteropPorts.fromElm
             )
 
-        Connect ->
-            ( { model | walletSelect = not model.walletSelect }
+        ToggleWalletSelect ->
+            ( { model
+                | walletSelect = not model.walletSelect
+              }
             , Cmd.none
             )
 
-        Incubate ->
-            ( model
-            , model.wallet
-                |> Maybe.andThen (.nfts >> List.head)
-                |> unwrap Cmd.none
-                    (.mintId
-                        >> InteropDefinitions.Stake
-                        >> InteropPorts.fromElm
-                    )
+        Incubate mintId ->
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
+            , mintId
+                |> InteropDefinitions.Stake
+                |> InteropPorts.fromElm
             )
 
         Withdraw mintId ->
-            ( model
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
             , mintId
                 |> InteropDefinitions.Withdraw
                 |> InteropPorts.fromElm
@@ -60,20 +67,32 @@ update msg model =
                 |> InteropPorts.fromElm
             )
 
-        WithdrawResponse ->
-            ( { model
-                | wallet =
-                    model.wallet
-                        |> Maybe.map
-                            (\state ->
-                                { state
-                                    | stake = Nothing
-                                }
-                            )
-                , withdrawComplete = True
-              }
-            , Cmd.none
-            )
+        WithdrawResponse res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 0
+            in
+            res
+                |> unwrap ( { model | ticks = ticks }, Cmd.none )
+                    (\nft ->
+                        ( { model
+                            | ticks = ticks
+                            , wallet =
+                                model.wallet
+                                    |> Maybe.map
+                                        (\wallet ->
+                                            { wallet
+                                                | stake = Nothing
+                                                , nfts = nft :: wallet.nfts
+                                            }
+                                        )
+                            , nftIndex = 0
+                          }
+                        , InteropDefinitions.Alert "Your NFT withdraw was successful."
+                            |> InteropPorts.fromElm
+                        )
+                    )
 
         AlreadyStaked mintId ->
             ( { model
@@ -101,9 +120,14 @@ update msg model =
                 |> InteropPorts.fromElm
             )
 
-        Select n ->
-            ( model
-            , n
+        ConnectWallet walletId ->
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 0
+                , walletSelect = False
+              }
+            , walletId
                 |> InteropDefinitions.Connect
                 |> InteropPorts.fromElm
             )
@@ -121,6 +145,11 @@ update msg model =
             )
 
         ConnectResponse res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 0
+            in
             ( { model
                 | wallet =
                     res
@@ -141,18 +170,24 @@ update msg model =
                 , walletSelect = False
                 , nftIndex = 0
                 , dropdown = False
-                , withdrawComplete = False
+                , ticks = ticks
               }
             , Cmd.none
             )
 
         StakeResponse val ->
-            ( { model
-                | wallet =
-                    val
-                        |> unwrap
-                            model.wallet
-                            (\stake ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
+            val
+                |> unwrap
+                    ( { model | ticks = ticks }, Cmd.none )
+                    (\stake ->
+                        ( { model
+                            | ticks = ticks
+                            , wallet =
                                 model.wallet
                                     |> Maybe.map
                                         (\wallet ->
@@ -166,39 +201,56 @@ update msg model =
                                                         }
                                             }
                                         )
-                            )
-              }
-            , InteropDefinitions.Log "Your egg was staked successfully."
-                |> InteropPorts.fromElm
-            )
+                          }
+                        , InteropDefinitions.Log "Your egg was staked successfully."
+                            |> InteropPorts.fromElm
+                        )
+                    )
 
         SignTimestamp mintId ->
-            ( model
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
             , InteropDefinitions.SignTimestamp mintId
                 |> InteropPorts.fromElm
             )
 
         SignResponse res ->
-            ( model
-            , model.wallet
-                |> unwrap Cmd.none
-                    (\wallet ->
-                        upgradeTier2 wallet.address res
+            Maybe.map2
+                (\wallet signData ->
+                    ( model, upgradeTier2 wallet.address signData )
+                )
+                model.wallet
+                res
+                |> Maybe.withDefault
+                    ( { model
+                        | ticks =
+                            model.ticks
+                                |> Ticks.untick 1
+                      }
+                    , Cmd.none
                     )
-            )
 
         UpgradeCb res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
             res
                 |> unpack
                     (\err ->
-                        ( model
+                        ( { model | ticks = ticks }
                         , InteropDefinitions.Log (parseError err)
                             |> InteropPorts.fromElm
                         )
                     )
                     (\mintId ->
                         ( { model
-                            | wallet =
+                            | ticks = ticks
+                            , wallet =
                                 model.wallet
                                     |> Maybe.map
                                         (\wallet ->

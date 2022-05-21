@@ -4,6 +4,7 @@ import Browser
 import InteropDefinitions exposing (Flags, ToElm(..))
 import InteropPorts
 import Result.Extra exposing (unpack)
+import Ticks
 import Time
 import Types exposing (Model, Msg)
 import Update exposing (update)
@@ -31,8 +32,8 @@ init flags =
       , time = flags.now // 1000
       , scrollStart = flags.screen.height
       , playButtonPulse = True
-      , withdrawComplete = False
       , nftIndex = 0
+      , ticks = Ticks.empty
       }
     , Cmd.none
     )
@@ -56,8 +57,8 @@ subscriptions _ =
                         StakeResponse val ->
                             Types.StakeResponse val
 
-                        WithdrawResponse ->
-                            Types.WithdrawResponse
+                        WithdrawResponse val ->
+                            Types.WithdrawResponse val
 
                         SignResponse val ->
                             Types.SignResponse val

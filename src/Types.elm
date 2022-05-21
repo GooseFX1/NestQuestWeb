@@ -2,6 +2,7 @@ module Types exposing (Model, Msg(..), Nft, Screen, SignatureData, Stake, Tier(.
 
 import Http
 import Json.Decode
+import Ticks exposing (Ticks)
 import Time exposing (Posix)
 
 
@@ -15,29 +16,33 @@ type alias Model =
     , time : Int
     , scrollStart : Int
     , playButtonPulse : Bool
-    , withdrawComplete : Bool
     , nftIndex : Int
+
+    -- Spinners:
+    -- 0: wallet connect
+    -- 1: NFT stake/withdraw/upgrade
+    , ticks : Ticks
     }
 
 
 type Msg
-    = Connect
+    = ToggleWalletSelect
     | ConnectResponse (Maybe Wallet)
     | PlayTheme
     | Scroll Int
-    | Select Int
+    | ConnectWallet Int
     | ToggleDropdown
     | Disconnect
     | ChangeWallet
-    | Incubate
+    | Incubate String
     | Withdraw String
     | AlreadyStaked String
     | StakeResponse (Maybe Stake)
-    | WithdrawResponse
+    | WithdrawResponse (Maybe Nft)
     | Tick Posix
     | NftSelect Bool
     | SignTimestamp String
-    | SignResponse SignatureData
+    | SignResponse (Maybe SignatureData)
     | PortFail Json.Decode.Error
     | UpgradeCb (Result Http.Error String)
 

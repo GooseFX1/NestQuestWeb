@@ -33,8 +33,8 @@ type ToElm
     = AlreadyStaked String
     | ConnectResponse (Maybe Types.Wallet)
     | StakeResponse (Maybe Types.Stake)
-    | WithdrawResponse
-    | SignResponse { mintId : String, signature : String }
+    | WithdrawResponse (Maybe Types.Nft)
+    | SignResponse (Maybe Types.SignatureData)
 
 
 type alias Flags =
@@ -105,15 +105,20 @@ toElm =
                 |> TsDecode.map ConnectResponse
           )
         , ( "stakeResponse"
-          , TsDecode.nullable decodeStake
+          , decodeStake
+                |> TsDecode.nullable
                 |> TsDecode.field "data"
                 |> TsDecode.map StakeResponse
           )
         , ( "withdrawResponse"
-          , TsDecode.succeed WithdrawResponse
+          , decodeNft
+                |> TsDecode.nullable
+                |> TsDecode.field "data"
+                |> TsDecode.map WithdrawResponse
           )
         , ( "signResponse"
           , decodeTs
+                |> TsDecode.nullable
                 |> TsDecode.field "data"
                 |> TsDecode.map SignResponse
           )

@@ -133,16 +133,26 @@ const withdraw = (mintId: string) =>
     const mintPK = new web3.PublicKey(mintId);
 
     const res = await txns.withdraw(activeWallet, mintPK);
+
+    const nft = await txns.fetchNFT(mintPK);
+
     console.log(res);
-    return app.ports.interopToElm.send({ tag: "withdrawResponse" });
+    return app.ports.interopToElm.send({
+      tag: "withdrawResponse",
+      data: nft,
+    });
   })().catch((e) => {
     console.error(e);
     if (DEBUG) {
       alert(e);
     }
+    return app.ports.interopToElm.send({
+      tag: "withdrawResponse",
+      data: null,
+    });
   });
 
-const signTimestamp = (mintId: string) =>
+const signMessage = (mintId: string) =>
   (async () => {
     const encodedMessage = new TextEncoder().encode(
       "NestQuest verify:\n" + mintId
@@ -163,6 +173,10 @@ const signTimestamp = (mintId: string) =>
     });
   })().catch((e) => {
     console.error(e);
+    return app.ports.interopToElm.send({
+      tag: "signResponse",
+      data: null,
+    });
   });
 
 const connect = (id: number) =>
@@ -215,7 +229,7 @@ const handlePorts = (fromElm: FromElm): boolean => {
       return true;
     }
     case "signTimestamp": {
-      signTimestamp(fromElm.data);
+      signMessage(fromElm.data);
       return true;
     }
     case "withdraw": {
