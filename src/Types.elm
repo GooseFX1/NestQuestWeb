@@ -44,7 +44,7 @@ type Msg
     | SignTimestamp String
     | SignResponse (Maybe SignatureData)
     | PortFail Json.Decode.Error
-    | UpgradeCb (Result Http.Error String)
+    | UpgradeCb (Result Http.Error (Result String String))
 
 
 type alias Screen =

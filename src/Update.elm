@@ -243,33 +243,45 @@ update msg model =
                 |> unpack
                     (\err ->
                         ( { model | ticks = ticks }
-                        , InteropDefinitions.Log (parseError err)
-                            |> InteropPorts.fromElm
+                        , [ InteropDefinitions.Log (parseError err)
+                                |> InteropPorts.fromElm
+                          , InteropDefinitions.Alert "There was a problem."
+                                |> InteropPorts.fromElm
+                          ]
+                            |> Cmd.batch
                         )
                     )
-                    (\mintId ->
-                        ( { model
-                            | ticks = ticks
-                            , wallet =
-                                model.wallet
-                                    |> Maybe.map
-                                        (\wallet ->
-                                            { wallet
-                                                | nfts =
-                                                    wallet.nfts
-                                                        |> List.map
-                                                            (\nft ->
-                                                                if nft.mintId == mintId then
-                                                                    { nft | tier = Types.Tier3 }
+                    (unpack
+                        (\err ->
+                            ( { model | ticks = ticks }
+                            , InteropDefinitions.Alert err
+                                |> InteropPorts.fromElm
+                            )
+                        )
+                        (\mintId ->
+                            ( { model
+                                | ticks = ticks
+                                , wallet =
+                                    model.wallet
+                                        |> Maybe.map
+                                            (\wallet ->
+                                                { wallet
+                                                    | nfts =
+                                                        wallet.nfts
+                                                            |> List.map
+                                                                (\nft ->
+                                                                    if nft.mintId == mintId then
+                                                                        { nft | tier = Types.Tier3 }
 
-                                                                else
-                                                                    nft
-                                                            )
-                                            }
-                                        )
-                          }
-                        , InteropDefinitions.Alert "Your hatchling has been successfully upgraded."
-                            |> InteropPorts.fromElm
+                                                                    else
+                                                                        nft
+                                                                )
+                                                }
+                                            )
+                              }
+                            , InteropDefinitions.Alert "Your hatchling has been successfully upgraded."
+                                |> InteropPorts.fromElm
+                            )
                         )
                     )
 
@@ -419,5 +431,17 @@ upgradeTier2 address data =
             ]
                 |> JE.object
                 |> Http.jsonBody
-        , expect = Http.expectJson UpgradeCb JD.string
+        , expect =
+            Http.expectJson UpgradeCb
+                (JD.map2
+                    (\status msg ->
+                        if status == "ok" then
+                            Ok msg
+
+                        else
+                            Err msg
+                    )
+                    (JD.field "status" JD.string)
+                    (JD.field "message" JD.string)
+                )
         }
