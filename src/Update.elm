@@ -1,7 +1,14 @@
 module Update exposing (update)
 
+import Helpers.Http exposing (parseError)
+import Http
+import InteropDefinitions
+import InteropPorts
+import Json.Decode as JD
+import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
-import Ports
+import Result.Extra exposing (unpack)
+import Ticks
 import Time
 import Types exposing (Model, Msg(..))
 
@@ -14,21 +21,41 @@ update msg model =
             , Cmd.none
             )
 
-        Connect ->
-            ( { model | walletSelect = not model.walletSelect }
+        PortFail err ->
+            ( model
+            , err
+                |> JD.errorToString
+                |> InteropDefinitions.Log
+                |> InteropPorts.fromElm
+            )
+
+        ToggleWalletSelect ->
+            ( { model
+                | walletSelect = not model.walletSelect
+              }
             , Cmd.none
             )
 
-        Incubate ->
-            ( model
-            , model.wallet
-                |> Maybe.andThen (.nfts >> List.head)
-                |> unwrap Cmd.none (.mintId >> Ports.stake)
+        Incubate mintId ->
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
+            , mintId
+                |> InteropDefinitions.Stake
+                |> InteropPorts.fromElm
             )
 
         Withdraw mintId ->
-            ( model
-            , Ports.withdraw mintId
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
+            , mintId
+                |> InteropDefinitions.Withdraw
+                |> InteropPorts.fromElm
             )
 
         Disconnect ->
@@ -36,23 +63,36 @@ update msg model =
                 | wallet = Nothing
                 , dropdown = False
               }
-            , Ports.disconnect ()
+            , InteropDefinitions.Disconnect
+                |> InteropPorts.fromElm
             )
 
-        WithdrawResponse _ ->
-            ( { model
-                | wallet =
-                    model.wallet
-                        |> Maybe.map
-                            (\state ->
-                                { state
-                                    | stake = Nothing
-                                }
-                            )
-                , withdrawComplete = True
-              }
-            , Cmd.none
-            )
+        WithdrawResponse res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 0
+            in
+            res
+                |> unwrap ( { model | ticks = ticks }, Cmd.none )
+                    (\nft ->
+                        ( { model
+                            | ticks = ticks
+                            , wallet =
+                                model.wallet
+                                    |> Maybe.map
+                                        (\wallet ->
+                                            { wallet
+                                                | stake = Nothing
+                                                , nfts = nft :: wallet.nfts
+                                            }
+                                        )
+                            , nftIndex = 0
+                          }
+                        , InteropDefinitions.Alert "Your NFT withdraw was successful."
+                            |> InteropPorts.fromElm
+                        )
+                    )
 
         AlreadyStaked mintId ->
             ( { model
@@ -76,11 +116,21 @@ update msg model =
                 , dropdown = False
                 , walletSelect = True
               }
-            , Ports.disconnect ()
+            , InteropDefinitions.Disconnect
+                |> InteropPorts.fromElm
             )
 
-        Select n ->
-            ( model, Ports.connect n )
+        ConnectWallet walletId ->
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 0
+                , walletSelect = False
+              }
+            , walletId
+                |> InteropDefinitions.Connect
+                |> InteropPorts.fromElm
+            )
 
         Scroll scrollDepth ->
             ( { model
@@ -94,15 +144,20 @@ update msg model =
             , Cmd.none
             )
 
-        ConnectResponse val ->
+        ConnectResponse res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 0
+            in
             ( { model
                 | wallet =
-                    val
+                    res
                         |> Maybe.map
-                            (\state ->
-                                { state
+                            (\wallet ->
+                                { wallet
                                     | stake =
-                                        state.stake
+                                        wallet.stake
                                             |> Maybe.map
                                                 (\stake ->
                                                     { stake
@@ -113,17 +168,26 @@ update msg model =
                                 }
                             )
                 , walletSelect = False
+                , nftIndex = 0
+                , dropdown = False
+                , ticks = ticks
               }
             , Cmd.none
             )
 
         StakeResponse val ->
-            ( { model
-                | wallet =
-                    val
-                        |> unwrap
-                            model.wallet
-                            (\stake ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
+            val
+                |> unwrap
+                    ( { model | ticks = ticks }, Cmd.none )
+                    (\stake ->
+                        ( { model
+                            | ticks = ticks
+                            , wallet =
                                 model.wallet
                                     |> Maybe.map
                                         (\wallet ->
@@ -137,24 +201,132 @@ update msg model =
                                                         }
                                             }
                                         )
-                            )
+                          }
+                        , InteropDefinitions.Log "Your egg was staked successfully."
+                            |> InteropPorts.fromElm
+                        )
+                    )
+
+        SignTimestamp mintId ->
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
               }
-            , Cmd.none
+            , InteropDefinitions.SignTimestamp mintId
+                |> InteropPorts.fromElm
             )
 
-        Convert ->
+        SignResponse res ->
+            Maybe.map2
+                (\wallet signData ->
+                    ( model, upgradeTier2 wallet.address signData )
+                )
+                model.wallet
+                res
+                |> Maybe.withDefault
+                    ( { model
+                        | ticks =
+                            model.ticks
+                                |> Ticks.untick 1
+                      }
+                    , Cmd.none
+                    )
+
+        UpgradeCb res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
+            res
+                |> unpack
+                    (\err ->
+                        ( { model | ticks = ticks }
+                        , [ InteropDefinitions.Log (parseError err)
+                                |> InteropPorts.fromElm
+                          , InteropDefinitions.Alert "There was a problem."
+                                |> InteropPorts.fromElm
+                          ]
+                            |> Cmd.batch
+                        )
+                    )
+                    (unpack
+                        (\err ->
+                            ( { model | ticks = ticks }
+                            , InteropDefinitions.Alert err
+                                |> InteropPorts.fromElm
+                            )
+                        )
+                        (\mintId ->
+                            ( { model
+                                | ticks = ticks
+                                , wallet =
+                                    model.wallet
+                                        |> Maybe.map
+                                            (\wallet ->
+                                                { wallet
+                                                    | nfts =
+                                                        wallet.nfts
+                                                            |> List.map
+                                                                (\nft ->
+                                                                    if nft.mintId == mintId then
+                                                                        { nft | tier = Types.Tier3 }
+
+                                                                    else
+                                                                        nft
+                                                                )
+                                                }
+                                            )
+                              }
+                            , InteropDefinitions.Alert "Your hatchling has been successfully upgraded."
+                                |> InteropPorts.fromElm
+                            )
+                        )
+                    )
+
+        ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
 
         PlayTheme ->
             if model.themePlaying then
                 ( { model | themePlaying = False }
-                , Ports.stopTheme ()
+                , InteropDefinitions.StopTheme
+                    |> InteropPorts.fromElm
                 )
 
             else
                 ( { model | themePlaying = True, playButtonPulse = False }
-                , Ports.playTheme ()
+                , InteropDefinitions.PlayTheme
+                    |> InteropPorts.fromElm
                 )
+
+        NftSelect backwards ->
+            ( { model
+                | nftIndex =
+                    model.wallet
+                        |> unwrap model.nftIndex
+                            (\wallet ->
+                                let
+                                    len =
+                                        List.length wallet.nfts - 1
+                                in
+                                if backwards then
+                                    if model.nftIndex <= 0 then
+                                        len
+
+                                    else
+                                        model.nftIndex - 1
+
+                                else if model.nftIndex >= len then
+                                    0
+
+                                else
+                                    model.nftIndex + 1
+                            )
+              }
+            , Cmd.none
+            )
 
 
 mobileCheckpoints : Int -> Int -> Int -> Int
@@ -246,3 +418,30 @@ desktopCheckpoints screenHeight currentIndex scrollVal =
 thirtyDaysSeconds : Int
 thirtyDaysSeconds =
     2592000
+
+
+upgradeTier2 : String -> Types.SignatureData -> Cmd Msg
+upgradeTier2 address data =
+    Http.post
+        { url = "https://nestquest-api.goosefx.io/tier3"
+        , body =
+            [ ( "address", JE.string address )
+            , ( "mint_id", JE.string data.mintId )
+            , ( "signature", JE.string data.signature )
+            ]
+                |> JE.object
+                |> Http.jsonBody
+        , expect =
+            Http.expectJson UpgradeCb
+                (JD.map2
+                    (\status msg ->
+                        if status == "ok" then
+                            Ok msg
+
+                        else
+                            Err msg
+                    )
+                    (JD.field "status" JD.string)
+                    (JD.field "message" JD.string)
+                )
+        }

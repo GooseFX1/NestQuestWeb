@@ -1,11 +1,14 @@
-module Types exposing (Flags, Model, Msg(..), Stake, State)
+module Types exposing (Model, Msg(..), Nft, Screen, SignatureData, Stake, Tier(..), Wallet)
 
+import Http
+import Json.Decode
+import Ticks exposing (Ticks)
 import Time exposing (Posix)
 
 
 type alias Model =
     { isMobile : Bool
-    , wallet : Maybe State
+    , wallet : Maybe Wallet
     , themePlaying : Bool
     , scrollIndex : Int
     , walletSelect : Bool
@@ -13,14 +16,35 @@ type alias Model =
     , time : Int
     , scrollStart : Int
     , playButtonPulse : Bool
-    , withdrawComplete : Bool
+    , nftIndex : Int
+
+    -- Spinners:
+    -- 0: wallet connect
+    -- 1: NFT stake/withdraw/upgrade
+    , ticks : Ticks
     }
 
 
-type alias Flags =
-    { screen : Screen
-    , now : Int
-    }
+type Msg
+    = ToggleWalletSelect
+    | ConnectResponse (Maybe Wallet)
+    | PlayTheme
+    | Scroll Int
+    | ConnectWallet Int
+    | ToggleDropdown
+    | Disconnect
+    | ChangeWallet
+    | Incubate String
+    | Withdraw String
+    | AlreadyStaked String
+    | StakeResponse (Maybe Stake)
+    | WithdrawResponse (Maybe Nft)
+    | Tick Posix
+    | NftSelect Bool
+    | SignTimestamp String
+    | SignResponse (Maybe SignatureData)
+    | PortFail Json.Decode.Error
+    | UpgradeCb (Result Http.Error (Result String String))
 
 
 type alias Screen =
@@ -29,7 +53,7 @@ type alias Screen =
     }
 
 
-type alias State =
+type alias Wallet =
     { address : String
     , stake : Maybe Stake
     , nfts : List Nft
@@ -45,21 +69,17 @@ type alias Stake =
 type alias Nft =
     { mintId : String
     , name : String
+    , tier : Tier
     }
 
 
-type Msg
-    = Connect
-    | ConnectResponse (Maybe State)
-    | PlayTheme
-    | Scroll Int
-    | Select Int
-    | Convert
-    | Disconnect
-    | ChangeWallet
-    | Incubate
-    | Withdraw String
-    | AlreadyStaked String
-    | StakeResponse (Maybe Stake)
-    | WithdrawResponse ()
-    | Tick Posix
+type alias SignatureData =
+    { mintId : String
+    , signature : String
+    }
+
+
+type Tier
+    = Tier1
+    | Tier2
+    | Tier3

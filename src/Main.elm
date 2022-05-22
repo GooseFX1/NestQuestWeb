@@ -1,14 +1,17 @@
 module Main exposing (main)
 
 import Browser
-import Ports
+import InteropDefinitions exposing (Flags, ToElm(..))
+import InteropPorts
+import Result.Extra exposing (unpack)
+import Ticks
 import Time
-import Types exposing (Flags, Model, Msg)
+import Types exposing (Model, Msg)
 import Update exposing (update)
 import View exposing (view)
 
 
-main : Program Flags Model Msg
+main : Program InteropDefinitions.Flags Model Msg
 main =
     Browser.element
         { init = init
@@ -29,7 +32,8 @@ init flags =
       , time = flags.now // 1000
       , scrollStart = flags.screen.height
       , playButtonPulse = True
-      , withdrawComplete = False
+      , nftIndex = 0
+      , ticks = Ticks.empty
       }
     , Cmd.none
     )
@@ -37,10 +41,28 @@ init flags =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    [ Ports.connectResponse Types.ConnectResponse
-    , Ports.stakeResponse Types.StakeResponse
-    , Ports.withdrawResponse Types.WithdrawResponse
-    , Ports.alreadyStaked Types.AlreadyStaked
-    , Time.every 10000 Types.Tick
+    [ Time.every 10000 Types.Tick
+    , InteropPorts.toElm
+        |> Sub.map
+            (unpack
+                Types.PortFail
+                (\msg ->
+                    case msg of
+                        AlreadyStaked val ->
+                            Types.AlreadyStaked val
+
+                        ConnectResponse val ->
+                            Types.ConnectResponse val
+
+                        StakeResponse val ->
+                            Types.StakeResponse val
+
+                        WithdrawResponse val ->
+                            Types.WithdrawResponse val
+
+                        SignResponse val ->
+                            Types.SignResponse val
+                )
+            )
     ]
         |> Sub.batch
