@@ -4,9 +4,12 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   SlopeWalletAdapter,
-  //LedgerWalletAdapter,
+  LedgerWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
-import { BaseMessageSignerWalletAdapter } from "@solana/wallet-adapter-base";
+import {
+  BaseMessageSignerWalletAdapter,
+  BaseSignerWalletAdapter,
+} from "@solana/wallet-adapter-base";
 import { web3 } from "@project-serum/anchor";
 import * as txns from "./txns";
 
@@ -18,7 +21,10 @@ const DEBUG = window.location.search.includes("debug=true");
 let theme: null | HTMLAudioElement = null;
 
 // eslint-disable-next-line fp/no-let
-let activeWallet: null | BaseMessageSignerWalletAdapter = null;
+let activeWallet:
+  | null
+  | BaseMessageSignerWalletAdapter
+  | BaseSignerWalletAdapter = null;
 
 const app = Elm.Main.init({
   node: document.getElementById("app"),
@@ -41,9 +47,7 @@ const getWallet = (n: number) => {
         return new SlopeWalletAdapter();
       }
       default: {
-        return new PhantomWalletAdapter();
-        // return new LedgerWalletAdapter();
-        // Not assignable to BaseMessageSignerWalletAdapter
+        return new LedgerWalletAdapter();
       }
     }
   })();
@@ -53,7 +57,9 @@ const getWallet = (n: number) => {
     : null;
 };
 
-const fetchState = async (wallet: BaseMessageSignerWalletAdapter) => {
+const fetchState = async (
+  wallet: BaseMessageSignerWalletAdapter | BaseSignerWalletAdapter
+) => {
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
@@ -158,7 +164,19 @@ const signMessage = (mintId: string) =>
       "NestQuest verify:\n" + mintId
     );
 
-    const signedMessage = await activeWallet?.signMessage(encodedMessage);
+    if (!(activeWallet && activeWallet.connected)) {
+      return;
+    }
+
+    if (!(activeWallet instanceof BaseMessageSignerWalletAdapter)) {
+      alert("This wallet does not support message signing.");
+      return app.ports.interopToElm.send({
+        tag: "signResponse",
+        data: null,
+      });
+    }
+
+    const signedMessage = await activeWallet.signMessage(encodedMessage);
 
     if (!signedMessage) {
       return console.error("empty signature");
