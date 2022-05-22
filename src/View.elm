@@ -610,26 +610,36 @@ viewIncubate inProgress hasMultiple isMobile nft =
         |> el
             [ centerX
             , let
-                ( hd, txt ) =
+                ( hd, content ) =
                     case nft.tier of
                         Tier1 ->
                             ( "Tier 1"
-                            , "This egg will need to be staked for 30 days to upgrade."
+                            , text "This egg will need to be staked for 30 days to upgrade."
                             )
 
                         Tier2 ->
                             ( "Tier 2"
-                            , "You will need to stake GOFX for 7 days to upgrade this NFT."
+                            , [ text "You will need to "
+                              , newTabLink [ Font.underline, hover, Font.bold ]
+                                    { url = "https://app.goosefx.io/farm"
+                                    , label = text "stake 25 GOFX"
+                                    }
+                              , text " with this wallet for "
+                              , text "7 days"
+                                    |> el [ Font.bold ]
+                              , text " before upgrading this NFT."
+                              ]
+                                |> paragraph []
                             )
 
                         Tier3 ->
                             ( "Tier 3"
-                            , "Your Gosling is growing stronger."
+                            , text "Your Gosling is growing stronger."
                             )
               in
               [ gradientText hd
                     |> el [ centerX, Font.size 22 ]
-              , [ text txt ]
+              , [ content ]
                     |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
               ]
                 |> column
