@@ -12,16 +12,19 @@ import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
 import { Stake } from "./codegen/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/programId";
 
+// @ts-ignore
+// eslint-disable-next-line no-undef
+const RPC_URL: string = RPC_URL_;
+
 const UPDATE_AUTH = new web3.PublicKey(
   "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ"
 );
 
 const GOFX = new web3.PublicKey("GFX1ZjR2P15tmrSwow6FjyDYcEkoFb4p4gJCpLBjaxHD");
 
-const connection = new web3.Connection(
-  "https://solana-api.syndica.io/access-token/k0PBf1GADbMGUJZ83O1vsdDdOMlCQokbpIy70B9eUxOKNp8D4rpTcKfsjxMX0kB3/rpc",
-  { confirmTransactionInitialTimeout: 60000 }
-);
+const connection = new web3.Connection(RPC_URL, {
+  confirmTransactionInitialTimeout: 60000,
+});
 
 interface Nft {
   mintId: string;
