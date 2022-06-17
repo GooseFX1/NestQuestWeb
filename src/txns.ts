@@ -224,21 +224,18 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
     }
   );
 
-  const tokensFiltered = tokensRaw.value.filter(
-    (tk) =>
-      tk.account.data.parsed.info.tokenAmount.uiAmount === 1 &&
-      tk.account.data.parsed.info.tokenAmount.decimals === 0
+  const metadataPDAs = tokensRaw.value.flatMap((tk) =>
+    tk.account.data.parsed.info.tokenAmount.uiAmount === 1 &&
+    tk.account.data.parsed.info.tokenAmount.decimals === 0
+      ? [getMetadataPDA(new web3.PublicKey(tk.account.data.parsed.info.mint))]
+      : []
   );
 
-  if (tokensFiltered.length === 0) {
+  if (metadataPDAs.length === 0) {
     return [];
   }
 
-  const tokens = tokensFiltered.map(
-    (token) => new web3.PublicKey(token.account.data.parsed.info.mint)
-  );
-
-  const pdas: web3.PublicKey[] = await Promise.all(tokens.map(getMetadataPDA));
+  const pdas: web3.PublicKey[] = await Promise.all(metadataPDAs);
 
   const accounts = await Account.getInfos(connection, pdas);
 
