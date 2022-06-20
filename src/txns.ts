@@ -259,11 +259,7 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
 };
 
 const parseNft = async (metadata: Metadata): Promise<Nft> => {
-  const headers = new Headers();
-  headers.append("pragma", "no-cache");
-  headers.append("cache-control", "no-cache");
-
-  const res = await fetch(metadata.data.uri, { headers });
+  const res = await fetch(metadata.data.uri, { cache: "no-cache" });
   const json = await res.json();
   const offchain = Offchain.parse(json);
   return {
