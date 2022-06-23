@@ -2,6 +2,8 @@ const { resolve } = require("path");
 const webpack = require("webpack");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
+const { RPC_URL } = process.env;
+
 const publicFolder = resolve("./public");
 
 module.exports = (env) => {
@@ -61,6 +63,12 @@ module.exports = (env) => {
     resolve: {
       extensions: [".ts", ".js"],
     },
-    plugins: [new NodePolyfillPlugin(), new webpack.NoEmitOnErrorsPlugin()],
+    plugins: [
+      new NodePolyfillPlugin(),
+      new webpack.NoEmitOnErrorsPlugin(),
+      new webpack.DefinePlugin({
+        RPC_URL_: JSON.stringify(RPC_URL),
+      }),
+    ],
   };
 };
