@@ -34,6 +34,8 @@ init flags =
       , playButtonPulse = True
       , nftIndex = 0
       , ticks = Ticks.empty
+      , selected = Nothing
+      , tentOpen = False
       }
     , Cmd.none
     )

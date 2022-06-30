@@ -62,6 +62,7 @@ update msg model =
             ( { model
                 | wallet = Nothing
                 , dropdown = False
+                , selected = Nothing
               }
             , InteropDefinitions.Disconnect
                 |> InteropPorts.fromElm
@@ -71,7 +72,7 @@ update msg model =
             let
                 ticks =
                     model.ticks
-                        |> Ticks.untick 0
+                        |> Ticks.untick 1
             in
             res
                 |> unwrap ( { model | ticks = ticks }, Cmd.none )
@@ -115,6 +116,7 @@ update msg model =
                 | wallet = Nothing
                 , dropdown = False
                 , walletSelect = True
+                , selected = Nothing
               }
             , InteropDefinitions.Disconnect
                 |> InteropPorts.fromElm
@@ -202,10 +204,24 @@ update msg model =
                                             }
                                         )
                           }
-                        , InteropDefinitions.Log "Your egg was staked successfully."
+                        , InteropDefinitions.Alert "Your egg was staked successfully."
                             |> InteropPorts.fromElm
                         )
                     )
+
+        SelectNft nft ->
+            ( { model
+                | selected = nft
+              }
+            , Cmd.none
+            )
+
+        ToggleTent ->
+            ( { model
+                | tentOpen = not model.tentOpen
+              }
+            , Cmd.none
+            )
 
         SignTimestamp mintId ->
             ( { model

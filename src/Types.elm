@@ -22,6 +22,8 @@ type alias Model =
     -- 0: wallet connect
     -- 1: NFT stake/withdraw/upgrade
     , ticks : Ticks
+    , selected : Maybe Nft
+    , tentOpen : Bool
     }
 
 
@@ -45,6 +47,8 @@ type Msg
     | SignResponse (Maybe SignatureData)
     | PortFail Json.Decode.Error
     | UpgradeCb (Result Http.Error (Result String String))
+    | SelectNft (Maybe Nft)
+    | ToggleTent
 
 
 type alias Screen =

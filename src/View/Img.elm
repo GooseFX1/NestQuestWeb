@@ -1,8 +1,8 @@
 module View.Img exposing (ledger, notchedCircle, phantom, slope, solflare)
 
 import Element exposing (Color, Element)
-import Svg exposing (Svg, defs, g, linearGradient, stop, svg)
-import Svg.Attributes exposing (clipPath, d, fill, gradientTransform, gradientUnits, height, id, offset, stopColor, viewBox, x1, x2, y1, y2)
+import Svg exposing (Svg, svg)
+import Svg.Attributes exposing (d, fill, height, viewBox)
 
 
 notchedCircle : Color -> Int -> Element msg
