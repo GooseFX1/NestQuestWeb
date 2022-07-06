@@ -36,6 +36,7 @@ init flags =
       , ticks = Ticks.empty
       , selected = Nothing
       , tentOpen = False
+      , outcome = Nothing
       }
     , Cmd.none
     )

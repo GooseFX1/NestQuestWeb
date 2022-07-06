@@ -24,6 +24,7 @@ type alias Model =
     , ticks : Ticks
     , selected : Maybe Nft
     , tentOpen : Bool
+    , outcome : Maybe Bool
     }
 
 
@@ -49,6 +50,10 @@ type Msg
     | UpgradeCb (Result Http.Error (Result String String))
     | SelectNft (Maybe Nft)
     | ToggleTent
+    | SelectChest Int
+    | SelectChestSync Int
+    | SelectChestCb (Result Http.Error (Result String (Maybe (List Int))))
+    | ClearChest
 
 
 type alias Screen =

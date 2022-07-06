@@ -56,30 +56,62 @@ view model =
             , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
-            , [ gradientText "Try your luck..."
-                    |> el [ centerX, Font.size 36 ]
-              , List.range 0 2
-                    |> List.map
-                        (\_ ->
-                            Input.button [ hover ]
-                                { onPress = Nothing
-                                , label =
-                                    image [ width <| px 200 ]
-                                        { src = "/chest_closed.png"
-                                        , description = ""
-                                        }
-                                }
+            , (model.outcome
+                |> unwrap
+                    ([ gradientText "Try your luck..."
+                        |> el [ centerX, Font.size 36 ]
+                     , [ List.range 0 3
+                            |> List.map viewChest
+                            |> row [ spacing 20 ]
+                       , List.range 0 2
+                            |> List.map ((+) 4 >> viewChest)
+                            |> row [ spacing 20, centerX ]
+                       ]
+                        |> column [ centerX ]
+                     ]
+                        |> column
+                            [ spacing 10
+                            ]
+                    )
+                    (\success ->
+                        (if success then
+                            [ chest True 200
+                                |> el [ centerX ]
+                            , [ gradientText "You can claim your reward."
+                                    |> el [ centerX, Font.size 26 ]
+                              , yellowButton False
+                                    model.isMobile
+                                    (gradientText "Claim")
+                                    (Just ClearChest)
+                                    |> el [ centerX ]
+                              ]
+                                |> column [ spacing 20 ]
+                            ]
+
+                         else
+                            [ chest False 200
+                                |> el [ centerX ]
+                            , [ gradientText "The wind has not blown in your favour."
+                                    |> el [ centerX, Font.size 26 ]
+                              , yellowButton False
+                                    model.isMobile
+                                    (gradientText "Continue")
+                                    (Just ClearChest)
+                                    |> el [ centerX ]
+                              ]
+                                |> column [ spacing 20 ]
+                            ]
                         )
-                    |> row [ spacing 20, centerX ]
-              ]
-                |> column
+                            |> column [ centerY, centerX ]
+                            |> el [ width <| px 800, height <| px 400 ]
+                    )
+              )
+                |> el
                     [ Background.color sand
                     , Border.width 3
                     , Border.color white
                     , Border.rounded 25
                     , padding 40
-                    , spacing 10
-                    , width <| px 800
                     , Input.button
                         [ alignTop
                         , alignRight
@@ -104,6 +136,29 @@ view model =
                 |> inFront
                 |> whenAttr model.tentOpen
             ]
+
+
+viewChest n =
+    Input.button [ hover ]
+        { onPress = Just <| SelectChestSync n
+        , label =
+            image [ width <| px 200 ]
+                { src = "/chest_closed.png"
+                , description = ""
+                }
+        }
+
+
+chest orb n =
+    image [ width <| px n ]
+        { src =
+            if orb then
+                "/chest_open_stone.png"
+
+            else
+                "/chest_open_empty.png"
+        , description = ""
+        }
 
 
 viewMobile : Model -> Element Msg
@@ -402,7 +457,6 @@ viewDesktop model =
                     (model.selected
                         |> unwrap False (.tier >> (==) Tier3)
                     )
-                |> whenAttr False
             ]
             { src = "/world-desktop.png", description = "" }
       ]

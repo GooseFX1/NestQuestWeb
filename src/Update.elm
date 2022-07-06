@@ -1,5 +1,6 @@
 module Update exposing (update)
 
+import Array
 import Helpers.Http exposing (parseError)
 import Http
 import InteropDefinitions
@@ -7,6 +8,8 @@ import InteropPorts
 import Json.Decode as JD
 import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
+import Random
+import Random.List
 import Result.Extra exposing (unpack)
 import Ticks
 import Time
@@ -223,6 +226,18 @@ update msg model =
             , Cmd.none
             )
 
+        SelectChest n ->
+            model.wallet
+                |> unwrap
+                    ( model, Cmd.none )
+                    (\wallet ->
+                        ( { model
+                            | tentOpen = model.tentOpen
+                          }
+                        , selectChest wallet.address n
+                        )
+                    )
+
         SignTimestamp mintId ->
             ( { model
                 | ticks =
@@ -300,6 +315,73 @@ update msg model =
                             )
                         )
                     )
+
+        SelectChestCb res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
+            res
+                |> unpack
+                    (\err ->
+                        ( { model | ticks = ticks }
+                        , [ InteropDefinitions.Log (parseError err)
+                                |> InteropPorts.fromElm
+                          , InteropDefinitions.Alert "There was a problem."
+                                |> InteropPorts.fromElm
+                          ]
+                            |> Cmd.batch
+                        )
+                    )
+                    (unpack
+                        (\err ->
+                            ( { model | ticks = ticks }
+                            , InteropDefinitions.Alert err
+                                |> InteropPorts.fromElm
+                            )
+                        )
+                        (\sig ->
+                            ( { model
+                                | ticks = ticks
+                              }
+                            , InteropDefinitions.Alert
+                                (if sig == Nothing then
+                                    "No luck for you."
+
+                                 else
+                                    "You got the prize."
+                                )
+                                |> InteropPorts.fromElm
+                            )
+                        )
+                    )
+
+        SelectChestSync n ->
+            let
+                options =
+                    [ True, False, False, False, False, False, False ]
+
+                shuffled =
+                    model.time
+                        |> Random.initialSeed
+                        |> Random.step
+                            (Random.List.shuffle options)
+                        |> Tuple.first
+            in
+            ( { model
+                | outcome =
+                    shuffled
+                        |> Array.fromList
+                        |> Array.get n
+                        |> Maybe.withDefault False
+                        |> Just
+              }
+            , Cmd.none
+            )
+
+        ClearChest ->
+            ( { model | outcome = Nothing }, Cmd.none )
 
         ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
@@ -459,5 +541,28 @@ upgradeTier2 address data =
                     )
                     (JD.field "status" JD.string)
                     (JD.field "message" JD.string)
+                )
+        }
+
+
+selectChest : String -> Int -> Cmd Msg
+selectChest address chest =
+    Http.post
+        { url = "https://nestquest-api.goosefx.io/chest"
+        , body =
+            [ ( "address", JE.string address )
+            , ( "guess", JE.int chest )
+            ]
+                |> JE.object
+                |> Http.jsonBody
+        , expect =
+            Http.expectJson SelectChestCb
+                (JD.oneOf
+                    [ JD.list JD.int
+                        |> JD.nullable
+                        |> JD.map Ok
+                    , JD.string
+                        |> JD.map Err
+                    ]
                 )
         }
