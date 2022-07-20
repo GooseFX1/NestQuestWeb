@@ -16,7 +16,7 @@ import Html.Events
 import Json.Decode as JD
 import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, Stake, Tier(..))
+import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..))
 import View.Img as Img
 
 
@@ -56,56 +56,7 @@ view model =
             , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
-            , (model.outcome
-                |> unwrap
-                    ([ gradientText "Try your luck..."
-                        |> el [ centerX, Font.size 36 ]
-                     , [ List.range 0 3
-                            |> List.map viewChest
-                            |> row [ spacing 20 ]
-                       , List.range 0 2
-                            |> List.map ((+) 4 >> viewChest)
-                            |> row [ spacing 20, centerX ]
-                       ]
-                        |> column [ centerX ]
-                     ]
-                        |> column
-                            [ spacing 10
-                            ]
-                    )
-                    (\success ->
-                        (if success then
-                            [ chest True 200
-                                |> el [ centerX ]
-                            , [ gradientText "You can claim your reward."
-                                    |> el [ centerX, Font.size 26 ]
-                              , yellowButton False
-                                    model.isMobile
-                                    (gradientText "Claim")
-                                    (Just ClearChest)
-                                    |> el [ centerX ]
-                              ]
-                                |> column [ spacing 20 ]
-                            ]
-
-                         else
-                            [ chest False 200
-                                |> el [ centerX ]
-                            , [ gradientText "The wind has not blown in your favour."
-                                    |> el [ centerX, Font.size 26 ]
-                              , yellowButton False
-                                    model.isMobile
-                                    (gradientText "Continue")
-                                    (Just ClearChest)
-                                    |> el [ centerX ]
-                              ]
-                                |> column [ spacing 20 ]
-                            ]
-                        )
-                            |> column [ centerY, centerX ]
-                            |> el [ width <| px 800, height <| px 400 ]
-                    )
-              )
+            , viewChests model.isMobile model.prizeStatus
                 |> el
                     [ Background.color sand
                     , Border.width 3
@@ -138,9 +89,97 @@ view model =
             ]
 
 
-viewChest n =
-    Input.button [ hover ]
-        { onPress = Just <| SelectChestSync n
+viewChests : Bool -> PrizeStatus -> Element Msg
+viewChests isMobile status =
+    let
+        chooser curr =
+            [ gradientText "Try your luck..."
+                |> el [ centerX, Font.size 36 ]
+            , [ List.range 0 3
+                    |> List.map (viewChest curr)
+                    |> row [ spacing 20 ]
+              , List.range 0 2
+                    |> List.map ((+) 4 >> viewChest curr)
+                    |> row [ spacing 20, centerX ]
+              ]
+                |> column [ centerX ]
+            ]
+                |> column
+                    [ spacing 10
+                    ]
+    in
+    case status of
+        ReadyToChoose ->
+            chooser Nothing
+
+        Choosing n ->
+            chooser (Just n)
+
+        WaitUntilTomorrow ->
+            [ chest False 200
+                |> el [ centerX ]
+            , [ gradientText "The wind has not blown in your favour."
+                    |> el [ centerX, Font.size 26 ]
+              , text "Try again tomorrow."
+                    |> el
+                        [ centerX
+                        , Font.italic
+                        , Font.size 23
+                        , Font.color wine
+                        , meriendaBold
+                        ]
+              , yellowButton False
+                    isMobile
+                    (gradientText "Continue")
+                    --(Just ClearChest)
+                    (Just ToggleTent)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        ClaimYourPrize _ ->
+            [ chest True 200
+                |> el [ centerX ]
+            , [ gradientText "You can claim your reward."
+                    |> el [ centerX, Font.size 26 ]
+              , yellowButton False
+                    isMobile
+                    (gradientText "Claim")
+                    (Just ToggleTent)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        Checking ->
+            spinner 50
+                |> el [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+
+viewChest curr n =
+    Input.button
+        [ if isJust curr then
+            fade
+
+          else
+            hover
+        , spinner 30
+            |> el [ centerX, centerY ]
+            |> inFront
+            |> whenAttr (curr == Just n)
+        ]
+        { onPress =
+            if isJust curr then
+                Nothing
+
+            else
+                Just <| SelectChest n
         , label =
             image [ width <| px 200 ]
                 { src = "/chest_closed.png"

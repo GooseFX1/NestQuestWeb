@@ -13,7 +13,7 @@ import Random.List
 import Result.Extra exposing (unpack)
 import Ticks
 import Time
-import Types exposing (Model, Msg(..))
+import Types exposing (Model, Msg(..), Tier(..))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -220,21 +220,35 @@ update msg model =
             )
 
         ToggleTent ->
-            ( { model
-                | tentOpen = not model.tentOpen
-              }
-            , Cmd.none
-            )
+            if model.tentOpen then
+                ( { model
+                    | tentOpen = False
+                  }
+                , Cmd.none
+                )
+
+            else
+                model.selected
+                    |> unwrap ( model, Cmd.none )
+                        (\nft ->
+                            ( { model
+                                | tentOpen = True
+                                , prizeStatus = Types.Checking
+                              }
+                            , getStatus nft.mintId
+                            )
+                        )
 
         SelectChest n ->
-            model.wallet
-                |> unwrap
-                    ( model, Cmd.none )
-                    (\wallet ->
+            model.selected
+                |> unwrap ( model, Cmd.none )
+                    (\nft ->
                         ( { model
-                            | tentOpen = model.tentOpen
+                            | prizeStatus =
+                                Types.Choosing n
                           }
-                        , selectChest wallet.address n
+                        , InteropDefinitions.SignTimestamp nft.mintId
+                            |> InteropPorts.fromElm
                         )
                     )
 
@@ -249,19 +263,56 @@ update msg model =
             )
 
         SignResponse res ->
-            Maybe.map2
-                (\wallet signData ->
-                    ( model, upgradeTier2 wallet.address signData )
-                )
-                model.wallet
-                res
-                |> Maybe.withDefault
-                    ( { model
-                        | ticks =
-                            model.ticks
-                                |> Ticks.untick 1
-                      }
-                    , Cmd.none
+            model.selected
+                |> unwrap
+                    ( model, Cmd.none )
+                    (\nft ->
+                        case nft.tier of
+                            Tier3 ->
+                                Maybe.map2
+                                    (\wallet signData ->
+                                        case model.prizeStatus of
+                                            Types.Choosing n ->
+                                                ( { model
+                                                    | tentOpen = model.tentOpen
+                                                  }
+                                                , selectChest
+                                                    signData.signature
+                                                    signData.mintId
+                                                    wallet.address
+                                                    n
+                                                )
+
+                                            _ ->
+                                                ( model, Cmd.none )
+                                    )
+                                    model.wallet
+                                    res
+                                    |> Maybe.withDefault
+                                        ( { model
+                                            | prizeStatus = Types.ReadyToChoose
+                                          }
+                                        , Cmd.none
+                                        )
+
+                            Tier2 ->
+                                Maybe.map2
+                                    (\wallet signData ->
+                                        ( model, upgradeTier2 wallet.address signData )
+                                    )
+                                    model.wallet
+                                    res
+                                    |> Maybe.withDefault
+                                        ( { model
+                                            | ticks =
+                                                model.ticks
+                                                    |> Ticks.untick 1
+                                          }
+                                        , Cmd.none
+                                        )
+
+                            Tier1 ->
+                                ( model, Cmd.none )
                     )
 
         UpgradeCb res ->
@@ -316,6 +367,32 @@ update msg model =
                         )
                     )
 
+        StatusCb res ->
+            res
+                |> unpack
+                    (\err ->
+                        ( { model | tentOpen = False }
+                        , [ InteropDefinitions.Log (parseError err)
+                                |> InteropPorts.fromElm
+                          , InteropDefinitions.Alert "There was a problem."
+                                |> InteropPorts.fromElm
+                          ]
+                            |> Cmd.batch
+                        )
+                    )
+                    (\canPlay ->
+                        ( { model
+                            | prizeStatus =
+                                if canPlay then
+                                    Types.ReadyToChoose
+
+                                else
+                                    Types.WaitUntilTomorrow
+                          }
+                        , Cmd.none
+                        )
+                    )
+
         SelectChestCb res ->
             let
                 ticks =
@@ -336,7 +413,10 @@ update msg model =
                     )
                     (unpack
                         (\err ->
-                            ( { model | ticks = ticks }
+                            ( { model
+                                | ticks = ticks
+                                , prizeStatus = Types.ReadyToChoose
+                              }
                             , InteropDefinitions.Alert err
                                 |> InteropPorts.fromElm
                             )
@@ -344,15 +424,12 @@ update msg model =
                         (\sig ->
                             ( { model
                                 | ticks = ticks
+                                , prizeStatus =
+                                    sig
+                                        |> unwrap Types.WaitUntilTomorrow
+                                            Types.ClaimYourPrize
                               }
-                            , InteropDefinitions.Alert
-                                (if sig == Nothing then
-                                    "No luck for you."
-
-                                 else
-                                    "You got the prize."
-                                )
-                                |> InteropPorts.fromElm
+                            , Cmd.none
                             )
                         )
                     )
@@ -545,12 +622,14 @@ upgradeTier2 address data =
         }
 
 
-selectChest : String -> Int -> Cmd Msg
-selectChest address chest =
+selectChest : String -> String -> String -> Int -> Cmd Msg
+selectChest signature nftAddr address chest =
     Http.post
         { url = "https://nestquest-api.goosefx.io/chest"
         , body =
-            [ ( "address", JE.string address )
+            [ ( "signature", JE.string signature )
+            , ( "address", JE.string address )
+            , ( "nft", JE.string nftAddr )
             , ( "guess", JE.int chest )
             ]
                 |> JE.object
@@ -565,4 +644,16 @@ selectChest address chest =
                         |> JD.map Err
                     ]
                 )
+        }
+
+
+getStatus : String -> Cmd Msg
+getStatus nftAddr =
+    Http.post
+        { url = "https://nestquest-api.goosefx.io/check"
+        , body =
+            JE.string nftAddr
+                |> Http.jsonBody
+        , expect =
+            Http.expectJson StatusCb JD.bool
         }

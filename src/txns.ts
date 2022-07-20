@@ -7,10 +7,10 @@ import { web3, utils } from "@project-serum/anchor";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { z } from "zod";
-import { deposit as depositFn } from "./codegen/instructions/deposit";
-import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
-import { Stake } from "./codegen/accounts/Stake";
-import { PROGRAM_ID } from "./codegen/programId";
+import { deposit as depositFn } from "./codegen/staking/instructions/deposit";
+import { withdraw as withdrawFn } from "./codegen/staking/instructions/withdraw";
+import { Stake } from "./codegen/staking/accounts/Stake";
+import { PROGRAM_ID } from "./codegen/staking/programId";
 
 // @ts-ignore
 // eslint-disable-next-line no-undef

@@ -1,4 +1,4 @@
-module Types exposing (Model, Msg(..), Nft, Screen, SignatureData, Stake, Tier(..), Wallet)
+module Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Screen, SignatureData, Stake, Tier(..), Wallet)
 
 import Http
 import Json.Decode
@@ -25,6 +25,7 @@ type alias Model =
     , selected : Maybe Nft
     , tentOpen : Bool
     , outcome : Maybe Bool
+    , prizeStatus : PrizeStatus
     }
 
 
@@ -48,6 +49,7 @@ type Msg
     | SignResponse (Maybe SignatureData)
     | PortFail Json.Decode.Error
     | UpgradeCb (Result Http.Error (Result String String))
+    | StatusCb (Result Http.Error Bool)
     | SelectNft (Maybe Nft)
     | ToggleTent
     | SelectChest Int
@@ -92,3 +94,11 @@ type Tier
     = Tier1
     | Tier2
     | Tier3
+
+
+type PrizeStatus
+    = Checking
+    | ReadyToChoose
+    | Choosing Int
+    | WaitUntilTomorrow
+    | ClaimYourPrize (List Int)

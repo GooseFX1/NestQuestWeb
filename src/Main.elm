@@ -37,6 +37,7 @@ init flags =
       , selected = Nothing
       , tentOpen = False
       , outcome = Nothing
+      , prizeStatus = Types.ReadyToChoose
       }
     , Cmd.none
     )
