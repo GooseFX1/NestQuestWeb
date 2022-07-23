@@ -16,7 +16,7 @@ import { PROGRAM_ID as ORB_PROGRAM_ID } from "./codegen/prize/programId";
 
 // @ts-ignore
 // eslint-disable-next-line no-undef
-const RPC_URL: string = RPC_URL_;
+const RPC_URL: string = "https://api.devnet.solana.com";
 
 const UPDATE_AUTH = new web3.PublicKey(
   "nestFGrTJ4QoRtvo8ZbASZZ2PSuv8AvvmaN1H31GhBQ"

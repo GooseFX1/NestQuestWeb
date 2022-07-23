@@ -505,10 +505,11 @@ viewDesktop model =
                         }
                 }
                 |> inFront
-                |> whenAttr
-                    (model.selected
-                        |> unwrap False (.tier >> (==) Tier3)
-                    )
+
+            --|> whenAttr
+            --(model.selected
+            --|> unwrap False (.tier >> (==) Tier3)
+            --)
             ]
             { src = "/world-desktop.png", description = "" }
       ]
