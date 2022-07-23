@@ -15,6 +15,10 @@ import * as txns from "./txns";
 
 import { Elm, FromElm } from "./Main.elm";
 
+// @ts-ignore
+// eslint-disable-next-line no-undef
+const BACKEND_URL: string = BACKEND_URL_;
+
 const DEBUG = window.location.search.includes("debug=true");
 
 // eslint-disable-next-line fp/no-let
@@ -31,6 +35,7 @@ const app = Elm.Main.init({
   flags: {
     screen: { width: window.innerWidth, height: window.innerHeight },
     now: Date.now(),
+    backendUrl: BACKEND_URL,
   },
 });
 
@@ -158,6 +163,27 @@ const withdraw = (mintId: string) =>
     });
   });
 
+const claimOrb = (data: { mintId: string; sig: number[] }) =>
+  (async () => {
+    if (!(activeWallet && activeWallet.connected)) {
+      return;
+    }
+    const mintPK = new web3.PublicKey(data.mintId);
+
+    const res = await txns.claim(activeWallet, mintPK, data.sig);
+
+    return app.ports.interopToElm.send({
+      tag: "claimResponse",
+      data: res,
+    });
+  })().catch((e) => {
+    console.error(e);
+    return app.ports.interopToElm.send({
+      tag: "claimResponse",
+      data: null,
+    });
+  });
+
 const signMessage = (mintId: string) =>
   (async () => {
     const encodedMessage = new TextEncoder().encode(
@@ -244,6 +270,10 @@ const handlePorts = (fromElm: FromElm): boolean => {
     }
     case "stake": {
       stake(fromElm.data);
+      return true;
+    }
+    case "claim": {
+      claimOrb(fromElm.data);
       return true;
     }
     case "signTimestamp": {

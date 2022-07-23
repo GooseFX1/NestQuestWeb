@@ -76,13 +76,10 @@ view model =
                         }
                         |> inFront
                     ]
-                --|> el [ height fill, width fill, Background.color <| rgba 0 0 0 0.1 ]
                 |> el
                     [ padding 50
                     , centerX
                     , centerY
-
-                    --, style "position" "fixed"
                     ]
                 |> inFront
                 |> whenAttr model.tentOpen
@@ -131,7 +128,6 @@ viewChests isMobile status =
               , yellowButton False
                     isMobile
                     (gradientText "Continue")
-                    --(Just ClearChest)
                     (Just ToggleTent)
                     |> el [ centerX ]
               ]
@@ -140,7 +136,7 @@ viewChests isMobile status =
                 |> column [ centerY, centerX, fadeIn ]
                 |> el [ width <| px 800, height <| px 400 ]
 
-        ClaimYourPrize _ ->
+        ClaimYourPrize sig ->
             [ chest True 200
                 |> el [ centerX ]
             , [ gradientText "You can claim your reward."
@@ -148,7 +144,7 @@ viewChests isMobile status =
               , yellowButton False
                     isMobile
                     (gradientText "Claim")
-                    (Just ToggleTent)
+                    (Just <| ClaimOrb sig)
                     |> el [ centerX ]
               ]
                 |> column [ spacing 20 ]
@@ -159,6 +155,23 @@ viewChests isMobile status =
         Checking ->
             spinner 50
                 |> el [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        AlreadyClaimed ->
+            [ image [ width <| px 175 ]
+                { src = "/orb.png"
+                , description = ""
+                }
+                |> el [ centerX ]
+            , gradientText "You have claimed your reward successfully."
+                |> el [ centerX, Font.size 26 ]
+            , yellowButton False
+                isMobile
+                (gradientText "Continue")
+                (Just ToggleTent)
+                |> el [ centerX ]
+            ]
+                |> column [ centerY, centerX, fadeIn, spacing 20 ]
                 |> el [ width <| px 800, height <| px 400 ]
 
 
@@ -1077,8 +1090,6 @@ fade =
 
 formatAddress : String -> String
 formatAddress addr =
-    --|> text
-    --|> el [ Font.color gold, centerX, Font.bold ]
     String.left 4 addr
         ++ "..."
         ++ String.right 4 addr

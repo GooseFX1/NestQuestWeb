@@ -66,6 +66,7 @@ update msg model =
                 | wallet = Nothing
                 , dropdown = False
                 , selected = Nothing
+                , prizeStatus = Types.ReadyToChoose
               }
             , InteropDefinitions.Disconnect
                 |> InteropPorts.fromElm
@@ -120,6 +121,7 @@ update msg model =
                 , dropdown = False
                 , walletSelect = True
                 , selected = Nothing
+                , prizeStatus = Types.ReadyToChoose
               }
             , InteropDefinitions.Disconnect
                 |> InteropPorts.fromElm
@@ -228,16 +230,27 @@ update msg model =
                 )
 
             else
-                model.selected
-                    |> unwrap ( model, Cmd.none )
-                        (\nft ->
-                            ( { model
-                                | tentOpen = True
-                                , prizeStatus = Types.Checking
-                              }
-                            , getStatus nft.mintId
-                            )
+                case model.prizeStatus of
+                    Types.ClaimYourPrize _ ->
+                        ( { model
+                            | tentOpen = True
+                          }
+                        , Cmd.none
                         )
+
+                    _ ->
+                        model.selected
+                            |> unwrap ( model, Cmd.none )
+                                (\nft ->
+                                    ( { model
+                                        | tentOpen = True
+                                        , prizeStatus = Types.Checking
+                                      }
+                                    , getStatus
+                                        model.backendUrl
+                                        nft.mintId
+                                    )
+                                )
 
         SelectChest n ->
             model.selected
@@ -252,6 +265,16 @@ update msg model =
                         )
                     )
 
+        ClaimOrb sig ->
+            ( model
+            , model.selected
+                |> unwrap Cmd.none
+                    (\nft ->
+                        InteropDefinitions.ClaimOrb nft.mintId sig
+                            |> InteropPorts.fromElm
+                    )
+            )
+
         SignTimestamp mintId ->
             ( { model
                 | ticks =
@@ -262,58 +285,67 @@ update msg model =
                 |> InteropPorts.fromElm
             )
 
+        ClaimOrbResponse sig ->
+            ( { model
+                | prizeStatus =
+                    if Maybe.Extra.isJust sig then
+                        Types.AlreadyClaimed
+
+                    else
+                        model.prizeStatus
+              }
+            , Cmd.none
+            )
+
         SignResponse res ->
-            model.selected
-                |> unwrap
-                    ( model, Cmd.none )
-                    (\nft ->
-                        case nft.tier of
-                            Tier3 ->
-                                Maybe.map2
-                                    (\wallet signData ->
-                                        case model.prizeStatus of
-                                            Types.Choosing n ->
-                                                ( { model
-                                                    | tentOpen = model.tentOpen
-                                                  }
-                                                , selectChest
-                                                    signData.signature
-                                                    signData.mintId
-                                                    wallet.address
-                                                    n
-                                                )
+            if model.tentOpen then
+                Maybe.map2
+                    (\wallet signData ->
+                        case model.prizeStatus of
+                            Types.Choosing n ->
+                                ( { model
+                                    | tentOpen = model.tentOpen
+                                  }
+                                , selectChest
+                                    model.backendUrl
+                                    signData.signature
+                                    signData.mintId
+                                    wallet.address
+                                    n
+                                )
 
-                                            _ ->
-                                                ( model, Cmd.none )
-                                    )
-                                    model.wallet
-                                    res
-                                    |> Maybe.withDefault
-                                        ( { model
-                                            | prizeStatus = Types.ReadyToChoose
-                                          }
-                                        , Cmd.none
-                                        )
-
-                            Tier2 ->
-                                Maybe.map2
-                                    (\wallet signData ->
-                                        ( model, upgradeTier2 wallet.address signData )
-                                    )
-                                    model.wallet
-                                    res
-                                    |> Maybe.withDefault
-                                        ( { model
-                                            | ticks =
-                                                model.ticks
-                                                    |> Ticks.untick 1
-                                          }
-                                        , Cmd.none
-                                        )
-
-                            Tier1 ->
+                            _ ->
                                 ( model, Cmd.none )
                     )
+                    model.wallet
+                    res
+                    |> Maybe.withDefault
+                        ( { model
+                            | prizeStatus = Types.ReadyToChoose
+                          }
+                        , Cmd.none
+                        )
+
+            else
+                Maybe.map2
+                    (\wallet signData ->
+                        ( model
+                        , upgradeTier2
+                            model.backendUrl
+                            wallet.address
+                            signData
+                        )
+                    )
+                    model.wallet
+                    res
+                    |> Maybe.withDefault
+                        ( { model
+                            | ticks =
+                                model.ticks
+                                    |> Ticks.untick 1
+                          }
+                        , Cmd.none
+                        )
 
         UpgradeCb res ->
             let
@@ -380,29 +412,30 @@ update msg model =
                             |> Cmd.batch
                         )
                     )
-                    (\canPlay ->
+                    (\status ->
                         ( { model
                             | prizeStatus =
-                                if canPlay then
-                                    Types.ReadyToChoose
+                                case status of
+                                    0 ->
+                                        Types.ReadyToChoose
 
-                                else
-                                    Types.WaitUntilTomorrow
+                                    1 ->
+                                        Types.WaitUntilTomorrow
+
+                                    _ ->
+                                        Types.AlreadyClaimed
                           }
                         , Cmd.none
                         )
                     )
 
         SelectChestCb res ->
-            let
-                ticks =
-                    model.ticks
-                        |> Ticks.untick 1
-            in
             res
                 |> unpack
                     (\err ->
-                        ( { model | ticks = ticks }
+                        ( { model
+                            | prizeStatus = Types.ReadyToChoose
+                          }
                         , [ InteropDefinitions.Log (parseError err)
                                 |> InteropPorts.fromElm
                           , InteropDefinitions.Alert "There was a problem."
@@ -414,8 +447,7 @@ update msg model =
                     (unpack
                         (\err ->
                             ( { model
-                                | ticks = ticks
-                                , prizeStatus = Types.ReadyToChoose
+                                | prizeStatus = Types.ReadyToChoose
                               }
                             , InteropDefinitions.Alert err
                                 |> InteropPorts.fromElm
@@ -423,8 +455,7 @@ update msg model =
                         )
                         (\sig ->
                             ( { model
-                                | ticks = ticks
-                                , prizeStatus =
+                                | prizeStatus =
                                     sig
                                         |> unwrap Types.WaitUntilTomorrow
                                             Types.ClaimYourPrize
@@ -433,32 +464,6 @@ update msg model =
                             )
                         )
                     )
-
-        SelectChestSync n ->
-            let
-                options =
-                    [ True, False, False, False, False, False, False ]
-
-                shuffled =
-                    model.time
-                        |> Random.initialSeed
-                        |> Random.step
-                            (Random.List.shuffle options)
-                        |> Tuple.first
-            in
-            ( { model
-                | outcome =
-                    shuffled
-                        |> Array.fromList
-                        |> Array.get n
-                        |> Maybe.withDefault False
-                        |> Just
-              }
-            , Cmd.none
-            )
-
-        ClearChest ->
-            ( { model | outcome = Nothing }, Cmd.none )
 
         ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
@@ -595,10 +600,10 @@ thirtyDaysSeconds =
     2592000
 
 
-upgradeTier2 : String -> Types.SignatureData -> Cmd Msg
-upgradeTier2 address data =
+upgradeTier2 : String -> String -> Types.SignatureData -> Cmd Msg
+upgradeTier2 base address data =
     Http.post
-        { url = "https://nestquest-api.goosefx.io/tier3"
+        { url = base ++ "/tier3"
         , body =
             [ ( "address", JE.string address )
             , ( "mint_id", JE.string data.mintId )
@@ -622,10 +627,10 @@ upgradeTier2 address data =
         }
 
 
-selectChest : String -> String -> String -> Int -> Cmd Msg
-selectChest signature nftAddr address chest =
+selectChest : String -> String -> String -> String -> Int -> Cmd Msg
+selectChest base signature nftAddr address chest =
     Http.post
-        { url = "https://nestquest-api.goosefx.io/chest"
+        { url = base ++ "/chest"
         , body =
             [ ( "signature", JE.string signature )
             , ( "address", JE.string address )
@@ -647,13 +652,13 @@ selectChest signature nftAddr address chest =
         }
 
 
-getStatus : String -> Cmd Msg
-getStatus nftAddr =
+getStatus : String -> String -> Cmd Msg
+getStatus base nftAddr =
     Http.post
-        { url = "https://nestquest-api.goosefx.io/check"
+        { url = base ++ "/check"
         , body =
             JE.string nftAddr
                 |> Http.jsonBody
         , expect =
-            Http.expectJson StatusCb JD.bool
+            Http.expectJson StatusCb JD.int
         }

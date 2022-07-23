@@ -36,8 +36,8 @@ init flags =
       , ticks = Ticks.empty
       , selected = Nothing
       , tentOpen = False
-      , outcome = Nothing
       , prizeStatus = Types.ReadyToChoose
+      , backendUrl = flags.backendUrl
       }
     , Cmd.none
     )
@@ -66,6 +66,9 @@ subscriptions _ =
 
                         SignResponse val ->
                             Types.SignResponse val
+
+                        ClaimOrbResponse val ->
+                            Types.ClaimOrbResponse val
                 )
             )
     ]

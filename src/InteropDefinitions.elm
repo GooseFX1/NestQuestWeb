@@ -27,6 +27,7 @@ type FromElm
     | Disconnect
     | SignTimestamp String
     | Stake String
+    | ClaimOrb String (List Int)
 
 
 type ToElm
@@ -35,18 +36,20 @@ type ToElm
     | StakeResponse (Maybe Types.Stake)
     | WithdrawResponse (Maybe Types.Nft)
     | SignResponse (Maybe Types.SignatureData)
+    | ClaimOrbResponse (Maybe String)
 
 
 type alias Flags =
     { screen : Types.Screen
     , now : Int
+    , backendUrl : String
     }
 
 
 fromElm : Encoder FromElm
 fromElm =
     TsEncode.union
-        (\vLog vAlert vPlayTheme vStopTheme vWithdraw vConnect vDisconnect vSignTimestamp vStake value ->
+        (\vLog vAlert vPlayTheme vStopTheme vWithdraw vConnect vDisconnect vSignTimestamp vStake vClaim value ->
             case value of
                 Log string ->
                     vLog string
@@ -74,6 +77,9 @@ fromElm =
 
                 Stake string ->
                     vStake string
+
+                ClaimOrb mintId sig ->
+                    vClaim { mintId = mintId, sig = sig }
         )
         |> TsEncode.variantTagged "log" TsEncode.string
         |> TsEncode.variantTagged "alert" TsEncode.string
@@ -84,6 +90,12 @@ fromElm =
         |> TsEncode.variantTagged "disconnect" TsEncode.null
         |> TsEncode.variantTagged "signTimestamp" TsEncode.string
         |> TsEncode.variantTagged "stake" TsEncode.string
+        |> TsEncode.variantTagged "claim"
+            (TsEncode.object
+                [ TsEncode.required "mintId" .mintId TsEncode.string
+                , TsEncode.required "sig" .sig (TsEncode.list TsEncode.int)
+                ]
+            )
         |> TsEncode.buildUnion
 
 
@@ -121,6 +133,12 @@ toElm =
                 |> TsDecode.nullable
                 |> TsDecode.field "data"
                 |> TsDecode.map SignResponse
+          )
+        , ( "claimResponse"
+          , TsDecode.string
+                |> TsDecode.nullable
+                |> TsDecode.field "data"
+                |> TsDecode.map ClaimOrbResponse
           )
         ]
 
@@ -173,6 +191,7 @@ decodeTier =
 
 flags : Decoder Flags
 flags =
-    TsDecode.map2 Flags
-        (TsDecode.field "screen " decodeScreen)
+    TsDecode.map3 Flags
+        (TsDecode.field "screen" decodeScreen)
         (TsDecode.field "now" TsDecode.int)
+        (TsDecode.field "backendUrl" TsDecode.string)
