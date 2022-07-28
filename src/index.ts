@@ -89,7 +89,8 @@ const playTheme = () => {
 
   const audio = new Audio("/theme.mp3");
 
-  audio.addEventListener("canplay", () => {
+  // Would use 'canplay' event but doesn't work on iOS Safari.
+  audio.addEventListener("loadedmetadata", () => {
     // eslint-disable-next-line fp/no-mutation
     theme = audio;
     audio.play();
