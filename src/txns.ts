@@ -9,10 +9,9 @@ import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { z } from "zod";
 import { deposit as depositFn } from "./codegen/staking/instructions/deposit";
 import { withdraw as withdrawFn } from "./codegen/staking/instructions/withdraw";
-import { claimOrb } from "./codegen/prize/instructions/claimOrb";
+import { claimOrb } from "./codegen/staking/instructions/claimOrb";
 import { Stake } from "./codegen/staking/accounts/Stake";
 import { PROGRAM_ID } from "./codegen/staking/programId";
-import { PROGRAM_ID as ORB_PROGRAM_ID } from "./codegen/prize/programId";
 
 // @ts-ignore
 // eslint-disable-next-line no-undef
@@ -243,12 +242,12 @@ const claim = async (
 
   const [claimState] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("orb"), mintId.toBytes()],
-    ORB_PROGRAM_ID
+    PROGRAM_ID
   );
 
   const [authorityAcct] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("orb")],
-    ORB_PROGRAM_ID
+    PROGRAM_ID
   );
 
   const accounts = {
