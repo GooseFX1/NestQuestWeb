@@ -108,10 +108,11 @@ toElm =
                 |> TsDecode.map AlreadyStaked
           )
         , ( "connectResponse"
-          , TsDecode.map3 Types.Wallet
+          , TsDecode.map4 Types.Wallet
                 (TsDecode.field "address" TsDecode.string)
                 (TsDecode.field "stake" (TsDecode.nullable decodeStake))
                 (TsDecode.field "nfts" (TsDecode.list decodeNft))
+                (TsDecode.field "orbs" TsDecode.int)
                 |> TsDecode.nullable
                 |> TsDecode.field "data"
                 |> TsDecode.map ConnectResponse
@@ -166,10 +167,29 @@ decodeScreen =
 
 decodeNft : Decoder Types.Nft
 decodeNft =
-    TsDecode.map3 Types.Nft
+    TsDecode.map3
+        (\mintId name tier ->
+            { mintId = mintId
+            , name = name
+            , tier = tier
+            , id =
+                name
+                    |> String.filter ((/=) nullByte)
+                    |> String.split "#"
+                    |> List.reverse
+                    |> List.head
+                    |> Maybe.andThen String.toInt
+                    |> Maybe.withDefault 99999
+            }
+        )
         (TsDecode.field "mintId" TsDecode.string)
         (TsDecode.field "name" TsDecode.string)
         (TsDecode.field "tier" decodeTier)
+
+
+nullByte : Char
+nullByte =
+    '\u{0000}'
 
 
 decodeTier : Decoder Types.Tier

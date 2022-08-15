@@ -110,7 +110,10 @@ const fetchStake = async (walletAddress: web3.PublicKey) => {
     return null;
   }
 
-  return stake;
+  return {
+    mintId: stake.mintId.toString(),
+    stakingStart: stake.stakingStart.toNumber(),
+  };
 };
 
 const withdraw = async (
@@ -291,6 +294,23 @@ const claim = async (
   return launch(wallet, transaction);
 };
 
+const fetchOrbs = async (walletAddress: web3.PublicKey): Promise<number> => {
+  const addr = await utils.token.associatedAddress({
+    mint: ORB_MINT,
+    owner: walletAddress,
+  });
+
+  const account = await connection.getAccountInfo(addr);
+
+  if (!account) {
+    return 0;
+  }
+
+  const token = await connection.getTokenAccountBalance(addr);
+
+  return parseInt(token.value.amount);
+};
+
 const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
   const tokensRaw = await connection.getParsedTokenAccountsByOwner(
     walletAddress,
@@ -359,6 +379,7 @@ export {
   hasBeenStaked,
   fetchOwned,
   fetchStake,
+  fetchOrbs,
   deposit,
   fetchNFT,
   claim,

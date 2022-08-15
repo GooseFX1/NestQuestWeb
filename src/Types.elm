@@ -1,4 +1,4 @@
-module Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Screen, SignatureData, Stake, Tier(..), Wallet)
+module Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Screen, SignatureData, Stake, Tier(..), View(..), Wallet)
 
 import Http
 import Json.Decode
@@ -17,15 +17,17 @@ type alias Model =
     , scrollStart : Int
     , playButtonPulse : Bool
     , nftIndex : Int
+    , selected : Maybe Nft
+    , tentOpen : Bool
+    , prizeStatus : PrizeStatus
+    , backendUrl : String
+    , view : View
+    , inventoryOpen : Bool
 
     -- Spinners:
     -- 0: wallet connect
     -- 1: NFT stake/withdraw/upgrade
     , ticks : Ticks
-    , selected : Maybe Nft
-    , tentOpen : Bool
-    , prizeStatus : PrizeStatus
-    , backendUrl : String
     }
 
 
@@ -52,10 +54,12 @@ type Msg
     | StatusCb (Result Http.Error Int)
     | SelectNft (Maybe Nft)
     | ToggleTent
+    | ToggleInventory
     | SelectChest Int
     | SelectChestCb (Result Http.Error (Result String (Maybe (List Int))))
     | ClaimOrb (List Int)
     | ClaimOrbResponse (Maybe String)
+    | SetView View
 
 
 type alias Screen =
@@ -68,6 +72,7 @@ type alias Wallet =
     { address : String
     , stake : Maybe Stake
     , nfts : List Nft
+    , orbs : Int
     }
 
 
@@ -81,6 +86,7 @@ type alias Nft =
     { mintId : String
     , name : String
     , tier : Tier
+    , id : Int
     }
 
 
@@ -88,6 +94,11 @@ type alias SignatureData =
     { mintId : String
     , signature : String
     }
+
+
+type View
+    = ViewHome
+    | ViewGame
 
 
 type Tier

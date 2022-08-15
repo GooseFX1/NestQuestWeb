@@ -217,6 +217,7 @@ update msg model =
         SelectNft nft ->
             ( { model
                 | selected = nft
+                , inventoryOpen = False
               }
             , Cmd.none
             )
@@ -465,8 +466,19 @@ update msg model =
                         )
                     )
 
+        SetView v ->
+            ( { model | view = v }, Cmd.none )
+
         ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
+
+        ToggleInventory ->
+            ( { model
+                | inventoryOpen = not model.inventoryOpen
+                , selected = Nothing
+              }
+            , Cmd.none
+            )
 
         PlayTheme ->
             if model.themePlaying then
