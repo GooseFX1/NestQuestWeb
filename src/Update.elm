@@ -1,6 +1,5 @@
 module Update exposing (update)
 
-import Array
 import Helpers.Http exposing (parseError)
 import Http
 import InteropDefinitions
@@ -8,8 +7,6 @@ import InteropPorts
 import Json.Decode as JD
 import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
-import Random
-import Random.List
 import Result.Extra exposing (unpack)
 import Ticks
 import Time

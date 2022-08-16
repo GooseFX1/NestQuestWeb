@@ -6,6 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
+import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
 import Types exposing (Model, Msg(..), Nft, Tier(..))
 import View.Shared exposing (..)
@@ -91,6 +92,28 @@ view model =
             , model.selected
                 |> whenJust (viewSelected (Ticks.get 1 model.ticks) False)
                 |> inFront
+            , Input.button
+                [ centerX
+                , moveDown 260
+                , moveLeft 90
+                , style "animation" "bob 2s infinite ease"
+                , hover
+                ]
+                { onPress = Just ToggleTent
+                , label =
+                    image
+                        [ height <| px 60
+                        , width <| px 60
+                        ]
+                        { src = "/glo.png"
+                        , description = ""
+                        }
+                }
+                |> inFront
+                |> whenAttr
+                    (model.selected
+                        |> unwrap False (.tier >> (==) Tier3)
+                    )
             ]
     ]
         |> column
@@ -103,45 +126,68 @@ view model =
 viewInventory model wallet =
     [ gradientText "Inventory"
         |> el [ centerX, Font.size 28 ]
-    , [ gradientText "Geese"
+    , [ gradientText "NestQuest NFTs"
             |> el [ centerX, Font.size 22, alignLeft ]
       , el [ width fill, height <| px 1, Background.color black ] none
-      , wallet.nfts
-            |> List.map
-                (\nft ->
-                    [ Input.button [ hover ]
-                        { onPress = Just <| SelectNft <| Just nft
-                        , label =
-                            image
-                                [ height <| px 100
-                                ]
-                                { src =
-                                    case nft.tier of
-                                        Types.Tier1 ->
-                                            "/egg-present.png"
-
-                                        Types.Tier2 ->
-                                            "/tier2.png"
-
-                                        Types.Tier3 ->
-                                            "/tier3.png"
-                                , description = ""
-                                }
+      , if List.isEmpty wallet.nfts then
+            newTabLink [ hover ]
+                { url = "https://app.goosefx.io/NFTs"
+                , label =
+                    [ image
+                        [ height <| px 100
+                        , centerX
+                        ]
+                        { src = "/egg-pending.png"
+                        , description = ""
                         }
-                    , nft.id
-                        |> formatInt
+                    , "Get an egg 🡕"
                         |> text
                         |> el
                             [ Font.color black
-                            , centerX
-                            , Font.size 20
+                            , Font.size 17
                             , meriendaRegular
-                            , Font.bold
                             ]
                     ]
-                        |> column [ spacing 10 ]
-                )
-            |> row []
+                        |> column []
+                }
+
+        else
+            wallet.nfts
+                |> List.map
+                    (\nft ->
+                        [ Input.button [ hover ]
+                            { onPress = Just <| SelectNft <| Just nft
+                            , label =
+                                image
+                                    [ height <| px 100
+                                    ]
+                                    { src =
+                                        case nft.tier of
+                                            Types.Tier1 ->
+                                                "/egg-present.png"
+
+                                            Types.Tier2 ->
+                                                "/tier2.png"
+
+                                            Types.Tier3 ->
+                                                "/tier3.png"
+                                    , description = ""
+                                    }
+                            }
+                        , nft.id
+                            |> formatInt
+                            |> text
+                            |> el
+                                [ Font.color black
+                                , centerX
+                                , Font.size 20
+                                , meriendaRegular
+                                , Font.bold
+                                ]
+                        ]
+                            |> column [ spacing 10 ]
+                    )
+                |> row [ width fill, scrollbarX, height <| px 160 ]
       ]
         |> column [ width fill ]
     , [ gradientText "Items"

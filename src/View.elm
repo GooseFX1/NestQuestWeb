@@ -505,28 +505,6 @@ viewDesktop model =
             , viewStats False
                 |> el [ centerX, width <| px 1000, moveDown 850 ]
                 |> inFront
-            , Input.button
-                [ centerX
-                , moveDown 260
-                , moveLeft 90
-                , style "animation" "bob 2s infinite ease"
-                , hover
-                ]
-                { onPress = Just ToggleTent
-                , label =
-                    image
-                        [ height <| px 60
-                        , width <| px 60
-                        ]
-                        { src = "/glo.png"
-                        , description = ""
-                        }
-                }
-                |> inFront
-                |> whenAttr
-                    (model.selected
-                        |> unwrap False (.tier >> (==) Tier3)
-                    )
             , fadeIn
             ]
             { src = "/world-desktop.png", description = "" }
