@@ -7,7 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FormatNumber
 import FormatNumber.Locales exposing (usLocale)
-import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
+import Helpers.View exposing (style, whenAttr)
 import Html
 import Html.Attributes
 import Maybe.Extra exposing (isJust, unwrap)

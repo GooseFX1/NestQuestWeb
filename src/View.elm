@@ -1,22 +1,18 @@
 module View exposing (view)
 
-import Array
-import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FormatNumber
-import FormatNumber.Locales exposing (usLocale)
-import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
+import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Maybe.Extra exposing (isJust, unwrap)
+import Maybe.Extra exposing (isJust)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..))
+import Types exposing (Model, Msg(..), PrizeStatus(..), Tier(..))
 import View.Game
 import View.Img as Img
 import View.Shared exposing (..)
@@ -321,8 +317,6 @@ viewMobile model =
                     , spacing 15
                     ]
                 |> inFront
-            , viewEggs model
-                |> inFront
             , viewStats True
                 |> el [ width fill, moveDown 280 ]
                 |> inFront
@@ -499,9 +493,6 @@ viewDesktop model =
                 ]
                 { src = "/parchment-desktop.svg", description = "" }
                 |> inFront
-            , viewEggs model
-                |> inFront
-                |> whenAttr False
             , viewStats False
                 |> el [ centerX, width <| px 1000, moveDown 850 ]
                 |> inFront
@@ -520,54 +511,6 @@ viewDesktop model =
             [ width fill
             , height fill
             ]
-
-
-viewEggs : Model -> Element Msg
-viewEggs model =
-    model.wallet
-        |> unwrap
-            (viewStack model.isMobile
-                (connectButton (Ticks.get 0 model.ticks)
-                    model.isMobile
-                    (Maybe.map .address model.wallet)
-                    model.dropdown
-                )
-            )
-            (\wallet ->
-                let
-                    inProgress =
-                        Ticks.get 1 model.ticks
-                in
-                wallet.stake
-                    |> unwrap
-                        (model.selected
-                            |> unwrap
-                                (wallet.nfts
-                                    |> Array.fromList
-                                    |> Array.get model.nftIndex
-                                    |> unwrap
-                                        (yellowButton False
-                                            model.isMobile
-                                            (newTabLink []
-                                                { url = "https://app.goosefx.io/NFTs"
-                                                , label = gradientText "Get an egg 🡕"
-                                                }
-                                            )
-                                            Nothing
-                                            |> viewStack model.isMobile
-                                        )
-                                        (viewSelectNft inProgress
-                                            (List.length wallet.nfts > 1)
-                                            model.isMobile
-                                        )
-                                )
-                                --(viewSelected inProgress model.isMobile)
-                                (always none)
-                        )
-                        (withdrawButton inProgress model.isMobile model.time
-                            >> viewStack model.isMobile
-                        )
-            )
 
 
 infoText : List (Element msg)
@@ -589,185 +532,6 @@ infoText =
       ]
         |> paragraph []
     ]
-
-
-viewStack : Bool -> Element Msg -> Element Msg
-viewStack isMobile elem =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
-
-                 else
-                    203
-                )
-        , centerX
-        ]
-        { src = "/egg-pending.png"
-        , description = ""
-        }
-    , elem
-        |> el
-            [ centerX
-            ]
-    ]
-        |> positionNFTWidget isMobile
-
-
-positionNFTWidget : Bool -> List (Element msg) -> Element msg
-positionNFTWidget isMobile =
-    let
-        down =
-            if isMobile then
-                80
-
-            else
-                395
-
-        left =
-            if isMobile then
-                0
-
-            else
-                120
-    in
-    column
-        [ alignRight
-        , moveDown down
-        , moveLeft left
-        ]
-
-
-viewSelectNft : Bool -> Bool -> Bool -> Nft -> Element Msg
-viewSelectNft inProgress hasMultiple isMobile nft =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
-
-                 else
-                    203
-                )
-        , centerX
-        , nft.name
-            |> String.filter ((/=) nullByte)
-            |> String.split "#"
-            |> List.reverse
-            |> List.head
-            |> Maybe.andThen String.toInt
-            |> whenJust
-                (formatInt
-                    >> text
-                    >> el
-                        [ Font.color white
-                        , centerX
-                        , Font.size
-                            (if isMobile then
-                                15
-
-                             else
-                                18
-                            )
-                        , meriendaRegular
-                        , moveDown
-                            (if isMobile then
-                                70
-
-                             else
-                                130
-                            )
-                        , Font.bold
-                        ]
-                )
-            |> inFront
-        , Input.button
-            [ moveDown
-                (if isMobile then
-                    42
-
-                 else
-                    80
-                )
-            , alignLeft
-            , moveLeft
-                (if isMobile then
-                    14
-
-                 else
-                    5
-                )
-            , hover
-            ]
-            { onPress =
-                if inProgress then
-                    Nothing
-
-                else
-                    Just <| NftSelect True
-            , label =
-                image
-                    [ height <| px 60
-                    ]
-                    { src = "/back.png", description = "" }
-            }
-            |> when hasMultiple
-            |> inFront
-        , Input.button
-            [ moveDown
-                (if isMobile then
-                    40
-
-                 else
-                    80
-                )
-            , alignRight
-            , moveRight
-                (if isMobile then
-                    15
-
-                 else
-                    5
-                )
-            , hover
-            ]
-            { onPress =
-                if inProgress then
-                    Nothing
-
-                else
-                    Just <| NftSelect False
-            , label =
-                image
-                    [ height <| px 60
-                    ]
-                    { src = "/next.png", description = "" }
-            }
-            |> when hasMultiple
-            |> inFront
-        ]
-        { src =
-            case nft.tier of
-                Tier1 ->
-                    "/egg-present.png"
-
-                Tier2 ->
-                    "/tier2.png"
-
-                Tier3 ->
-                    "/tier3.png"
-        , description = ""
-        }
-    , yellowButton inProgress
-        isMobile
-        (gradientText "Select")
-        (Just <| SelectNft <| Just nft)
-        |> el
-            [ centerX
-            ]
-    ]
-        |> positionNFTWidget isMobile
 
 
 boxM : ( Int, Int, String ) -> Element msg
@@ -922,85 +686,6 @@ musicButton pulse playing =
                 , description = ""
                 }
         }
-
-
-withdrawButton : Bool -> Bool -> Int -> Stake -> Element Msg
-withdrawButton inProgress isMobile time stake =
-    let
-        stakingEnd =
-            stake.stakingStart
-
-        diff =
-            Duration.seconds (toFloat (max 0 (stakingEnd - time)))
-
-        canWithdraw =
-            time >= stake.stakingStart
-    in
-    yellowButton inProgress
-        isMobile
-        (if canWithdraw then
-            gradientText "Evolve"
-
-         else
-            calcCountdown diff
-                |> gradientText
-        )
-        (if canWithdraw then
-            Just <| Withdraw stake.mintId
-
-         else
-            Nothing
-        )
-
-
-calcCountdown : Duration.Duration -> String
-calcCountdown diff =
-    let
-        days =
-            Duration.inDays diff
-
-        daysMins =
-            days
-                |> floor
-                |> toFloat
-                |> Duration.days
-                |> Duration.inMinutes
-
-        daysSeconds =
-            days
-                |> floor
-                |> toFloat
-                |> Duration.days
-                |> Duration.inSeconds
-
-        hours =
-            Duration.inMinutes diff
-                - daysMins
-                |> Duration.minutes
-                |> Duration.inHours
-
-        hoursSeconds =
-            hours
-                |> floor
-                |> toFloat
-                |> Duration.hours
-                |> Duration.inSeconds
-
-        mins =
-            Duration.inSeconds diff
-                - daysSeconds
-                - hoursSeconds
-                |> Duration.seconds
-                |> Duration.inMinutes
-    in
-    [ String.fromInt <| floor days
-    , "d: "
-    , String.fromInt <| floor hours
-    , "h: "
-    , String.fromInt <| floor mins
-    , "m"
-    ]
-        |> String.concat
 
 
 walletSelect : Bool -> Element Msg

@@ -1,14 +1,15 @@
 module View.Game exposing (view)
 
+import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
-import Maybe.Extra exposing (isJust, unwrap)
+import Helpers.View exposing (style, whenAttr, whenJust)
+import Maybe.Extra exposing (unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, Tier(..))
+import Types exposing (Model, Msg(..), Nft, Stake, Tier(..), Wallet)
 import View.Shared exposing (..)
 
 
@@ -16,22 +17,9 @@ view : Model -> Element Msg
 view model =
     [ [ gooseIcon 100
             |> el [ padding 20, alignLeft ]
-
-      --, [ gradientText "Home"
-      --, gradientText "Stats"
-      --, gradientText "Play"
-      --]
-      --|> row [ spacing 20, centerX, Font.size 30, centerY ]
       ]
         |> row
             [ width fill
-            , [ gradientText "Home"
-              , gradientText "Stats"
-              , gradientText "Play"
-              ]
-                |> row [ spacing 20, centerX, Font.size 30, centerY ]
-                |> inFront
-                |> whenAttr False
             , Input.button [ centerX, padding 20, hover ]
                 { onPress = Just <| SetView Types.ViewHome
                 , label =
@@ -40,32 +28,19 @@ view model =
                 }
                 |> inFront
             ]
-
-    --|> when False
     , image
         [ centerX
-
-        --, width fill
-        --, height fill
         , height <| px 800
-
-        --, paddingEach { top = 30, left = 0, right = 0, bottom = 0 }
-        --, viewEggs model
-        --|> inFront
-        --, viewStats False
-        --|> el [ centerX, width <| px 1000, moveDown 850 ]
-        --|> inFront
+        , fadeIn
         ]
         { src = "/world-crop.png", description = "" }
         |> el
             [ Border.width 3
-            , fadeIn
+            , width <| px 1220
             , centerX
             , Background.color <| rgb255 85 85 147
             , Border.color sand
             , Border.rounded 25
-
-            --, paddingEach { top = 30, left = 0, right = 0, bottom = 0 }
             , yellowButton False
                 False
                 (gradientText "Open Inventory")
@@ -126,98 +101,20 @@ view model =
 viewInventory model wallet =
     [ gradientText "Inventory"
         |> el [ centerX, Font.size 28 ]
-    , [ gradientText "NestQuest NFTs"
-            |> el [ centerX, Font.size 22, alignLeft ]
-      , el [ width fill, height <| px 1, Background.color black ] none
-      , if List.isEmpty wallet.nfts then
-            newTabLink [ hover ]
-                { url = "https://app.goosefx.io/NFTs"
-                , label =
-                    [ image
-                        [ height <| px 100
-                        , centerX
-                        ]
-                        { src = "/egg-pending.png"
-                        , description = ""
-                        }
-                    , "Get an egg 🡕"
-                        |> text
-                        |> el
-                            [ Font.color black
-                            , Font.size 17
-                            , meriendaRegular
-                            ]
-                    ]
-                        |> column []
-                }
-
-        else
-            wallet.nfts
-                |> List.map
-                    (\nft ->
-                        [ Input.button [ hover ]
-                            { onPress = Just <| SelectNft <| Just nft
-                            , label =
-                                image
-                                    [ height <| px 100
-                                    ]
-                                    { src =
-                                        case nft.tier of
-                                            Types.Tier1 ->
-                                                "/egg-present.png"
-
-                                            Types.Tier2 ->
-                                                "/tier2.png"
-
-                                            Types.Tier3 ->
-                                                "/tier3.png"
-                                    , description = ""
-                                    }
-                            }
-                        , nft.id
-                            |> formatInt
-                            |> text
-                            |> el
-                                [ Font.color black
-                                , centerX
-                                , Font.size 20
-                                , meriendaRegular
-                                , Font.bold
-                                ]
-                        ]
-                            |> column [ spacing 10 ]
-                    )
-                |> row [ width fill, scrollbarX, height <| px 160 ]
+    , [ [ viewGeese wallet
+        , viewItems wallet
+        ]
+            |> column [ width fill, spacing 20 ]
+      , [ [ gradientText "Incubator"
+                |> el [ centerX, Font.size 22, alignLeft ]
+          , horizontalRule
+          ]
+            |> column [ width fill ]
+        , viewIncubate model wallet
+        ]
+            |> column [ width <| px 240, spacing 20, alignTop ]
       ]
-        |> column [ width fill ]
-    , [ gradientText "Items"
-            |> el [ centerX, Font.size 22, alignLeft ]
-      , el [ width fill, height <| px 1, Background.color black ] none
-      , newTabLink [ hover ]
-            { url = "https://explorer.solana.com/address/orbs7FDskYc92kNer1M9jHBFaB821iCmPJkumZA4yyd"
-            , label =
-                [ image
-                    [ height <| px 70
-                    , padding 20
-                    ]
-                    { src = "/orb.png"
-                    , description = ""
-                    }
-                , "x"
-                    ++ String.fromInt wallet.orbs
-                    |> text
-                    |> el
-                        [ Font.color black
-                        , centerX
-                        , Font.size 20
-                        , meriendaRegular
-                        , Font.bold
-                        ]
-                ]
-                    |> column [ spacing 30 ]
-            }
-      ]
-        |> column [ width fill ]
+        |> row [ width fill, spacing 20 ]
     ]
         |> column [ centerX, fadeIn, width fill, spacing 20 ]
         |> el [ width <| px 800, height <| px 400 ]
@@ -240,6 +137,68 @@ viewInventory model wallet =
                 }
                 |> inFront
             ]
+
+
+viewIncubate : Model -> Wallet -> Element Msg
+viewIncubate model wallet =
+    let
+        inProgress =
+            Ticks.get 1 model.ticks
+    in
+    wallet.stake
+        |> unwrap
+            (image
+                [ height <| px 140
+                , centerX
+                ]
+                { src = "/egg-pending.png"
+                , description = ""
+                }
+            )
+            (\stake ->
+                [ Input.button [ centerX ]
+                    { onPress = Nothing
+                    , label =
+                        image
+                            [ height <| px 140
+                            ]
+                            { src = "/egg-present.png"
+                            , description = ""
+                            }
+                    }
+                , withdrawButton inProgress model.isMobile model.time stake
+                ]
+                    |> column []
+            )
+
+
+withdrawButton : Bool -> Bool -> Int -> Stake -> Element Msg
+withdrawButton inProgress isMobile time stake =
+    let
+        stakingEnd =
+            stake.stakingStart
+
+        diff =
+            Duration.seconds (toFloat (max 0 (stakingEnd - time)))
+
+        canWithdraw =
+            time >= stake.stakingStart
+    in
+    yellowButton inProgress
+        isMobile
+        (if canWithdraw then
+            gradientText "Evolve"
+
+         else
+            calcCountdown diff
+                |> gradientText
+        )
+        (if canWithdraw then
+            Just <| Withdraw stake.mintId
+
+         else
+            Nothing
+        )
 
 
 viewSelected : Bool -> Bool -> Nft -> Element Msg
@@ -387,3 +346,159 @@ viewSelected inProgress isMobile nft =
                 Tier3 ->
                     [ alignRight, moveLeft 600, moveDown 370 ]
             )
+
+
+viewGeese wallet =
+    [ gradientText "NestQuest NFTs"
+        |> el [ centerX, Font.size 22, alignLeft ]
+    , horizontalRule
+    , if List.isEmpty wallet.nfts then
+        newTabLink [ hover ]
+            { url = "https://app.goosefx.io/NFTs"
+            , label =
+                [ image
+                    [ height <| px 100
+                    , centerX
+                    ]
+                    { src = "/egg-pending.png"
+                    , description = ""
+                    }
+                , "Get an egg 🡕"
+                    |> text
+                    |> el
+                        [ Font.color black
+                        , Font.size 17
+                        , meriendaRegular
+                        ]
+                ]
+                    |> column []
+            }
+
+      else
+        wallet.nfts
+            |> List.map
+                (\nft ->
+                    [ Input.button [ hover ]
+                        { onPress = Just <| SelectNft <| Just nft
+                        , label =
+                            image
+                                [ height <| px 100
+                                ]
+                                { src =
+                                    case nft.tier of
+                                        Types.Tier1 ->
+                                            "/egg-present.png"
+
+                                        Types.Tier2 ->
+                                            "/tier2.png"
+
+                                        Types.Tier3 ->
+                                            "/tier3.png"
+                                , description = ""
+                                }
+                        }
+                    , nft.id
+                        |> formatInt
+                        |> text
+                        |> el
+                            [ Font.color black
+                            , centerX
+                            , Font.size 20
+                            , meriendaRegular
+                            , Font.bold
+                            ]
+                    ]
+                        |> column [ spacing 10 ]
+                )
+            --|> row [ width fill, scrollbarX, height <| px 160 ]
+            --|> row [ width fill, height fill ]
+            --|> List.singleton
+            --|> el [ width fill, scrollbarX, height <| px 160 ]
+            |> wrappedRow [ width fill, scrollbarY, height <| px 160 ]
+    ]
+        |> column [ width fill ]
+
+
+viewItems wallet =
+    [ gradientText "Items"
+        |> el [ centerX, Font.size 22, alignLeft ]
+    , horizontalRule
+    , newTabLink [ hover ]
+        { url = "https://explorer.solana.com/address/orbs7FDskYc92kNer1M9jHBFaB821iCmPJkumZA4yyd"
+        , label =
+            [ image
+                [ height <| px 70
+                , padding 20
+                ]
+                { src = "/orb.png"
+                , description = ""
+                }
+            , "x"
+                ++ String.fromInt wallet.orbs
+                |> text
+                |> el
+                    [ Font.color black
+                    , centerX
+                    , Font.size 20
+                    , meriendaRegular
+                    , Font.bold
+                    ]
+            ]
+                |> column [ spacing 30 ]
+        }
+    ]
+        |> column [ width fill ]
+
+
+calcCountdown : Duration.Duration -> String
+calcCountdown diff =
+    let
+        days =
+            Duration.inDays diff
+
+        daysMins =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inMinutes
+
+        daysSeconds =
+            days
+                |> floor
+                |> toFloat
+                |> Duration.days
+                |> Duration.inSeconds
+
+        hours =
+            Duration.inMinutes diff
+                - daysMins
+                |> Duration.minutes
+                |> Duration.inHours
+
+        hoursSeconds =
+            hours
+                |> floor
+                |> toFloat
+                |> Duration.hours
+                |> Duration.inSeconds
+
+        mins =
+            Duration.inSeconds diff
+                - daysSeconds
+                - hoursSeconds
+                |> Duration.seconds
+                |> Duration.inMinutes
+    in
+    [ String.fromInt <| floor days
+    , "d: "
+    , String.fromInt <| floor hours
+    , "h: "
+    , String.fromInt <| floor mins
+    , "m"
+    ]
+        |> String.concat
+
+
+horizontalRule =
+    el [ width fill, height <| px 1, Background.color black ] none
