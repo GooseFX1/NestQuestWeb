@@ -16,7 +16,7 @@ import Html.Events
 import Json.Decode as JD
 import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, Stake, Tier(..))
+import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..))
 import View.Img as Img
 
 
@@ -56,7 +56,161 @@ view model =
             , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
+            , viewChests model.isMobile model.prizeStatus
+                |> el
+                    [ Background.color sand
+                    , Border.width 3
+                    , Border.color white
+                    , Border.rounded 25
+                    , padding 40
+                    , Input.button
+                        [ alignTop
+                        , alignRight
+                        , padding 20
+                        , hover
+                        , Font.bold
+                        , Font.size 35
+                        ]
+                        { onPress = Just ToggleTent
+                        , label = text "X"
+                        }
+                        |> inFront
+                    ]
+                |> el
+                    [ padding 50
+                    , centerX
+                    , centerY
+                    ]
+                |> inFront
+                |> whenAttr model.tentOpen
             ]
+
+
+viewChests : Bool -> PrizeStatus -> Element Msg
+viewChests isMobile status =
+    let
+        chooser curr =
+            [ gradientText "Try your luck..."
+                |> el [ centerX, Font.size 36 ]
+            , [ List.range 0 3
+                    |> List.map (viewChest curr)
+                    |> row [ spacing 20 ]
+              , List.range 0 2
+                    |> List.map ((+) 4 >> viewChest curr)
+                    |> row [ spacing 20, centerX ]
+              ]
+                |> column [ centerX ]
+            ]
+                |> column
+                    [ spacing 10
+                    ]
+    in
+    case status of
+        ReadyToChoose ->
+            chooser Nothing
+
+        Choosing n ->
+            chooser (Just n)
+
+        WaitUntilTomorrow ->
+            [ chest False 200
+                |> el [ centerX ]
+            , [ gradientText "The wind has not blown in your favour."
+                    |> el [ centerX, Font.size 26 ]
+              , text "Try again tomorrow."
+                    |> el
+                        [ centerX
+                        , Font.italic
+                        , Font.size 23
+                        , Font.color wine
+                        , meriendaBold
+                        ]
+              , yellowButton False
+                    isMobile
+                    (gradientText "Continue")
+                    (Just ToggleTent)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        ClaimYourPrize sig ->
+            [ chest True 200
+                |> el [ centerX ]
+            , [ gradientText "You can claim your reward."
+                    |> el [ centerX, Font.size 26 ]
+              , yellowButton False
+                    isMobile
+                    (gradientText "Claim")
+                    (Just <| ClaimOrb sig)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        Checking ->
+            spinner 50
+                |> el [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        AlreadyClaimed ->
+            [ image [ width <| px 175 ]
+                { src = "/orb.png"
+                , description = ""
+                }
+                |> el [ centerX ]
+            , gradientText "You have claimed your reward successfully."
+                |> el [ centerX, Font.size 26 ]
+            , yellowButton False
+                isMobile
+                (gradientText "Continue")
+                (Just ToggleTent)
+                |> el [ centerX ]
+            ]
+                |> column [ centerY, centerX, fadeIn, spacing 20 ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+
+viewChest curr n =
+    Input.button
+        [ if isJust curr then
+            fade
+
+          else
+            hover
+        , spinner 30
+            |> el [ centerX, centerY ]
+            |> inFront
+            |> whenAttr (curr == Just n)
+        ]
+        { onPress =
+            if isJust curr then
+                Nothing
+
+            else
+                Just <| SelectChest n
+        , label =
+            image [ width <| px 200 ]
+                { src = "/chest_closed.png"
+                , description = ""
+                }
+        }
+
+
+chest orb n =
+    image [ width <| px n ]
+        { src =
+            if orb then
+                "/chest_open_stone.png"
+
+            else
+                "/chest_open_empty.png"
+        , description = ""
+        }
 
 
 viewMobile : Model -> Element Msg
@@ -150,9 +304,6 @@ viewMobile model =
                     |> row
                         [ spacing 10
                         , width fill
-                        , getEgg True
-                            |> el [ moveRight 210, moveDown 140 ]
-                            |> inFront
                         ]
               ]
                 |> column
@@ -312,9 +463,6 @@ viewDesktop model =
                             [ width <| px 424
                             , alignLeft
                             , fadeIn
-                            , getEgg False
-                                |> el [ moveRight 60, moveDown 20 ]
-                                |> onRight
                             ]
                         |> when (model.scrollIndex > 8)
                     ]
@@ -339,6 +487,28 @@ viewDesktop model =
             , viewStats False
                 |> el [ centerX, width <| px 1000, moveDown 850 ]
                 |> inFront
+            , Input.button
+                [ centerX
+                , moveDown 260
+                , moveLeft 90
+                , style "animation" "bob 2s infinite ease"
+                , hover
+                ]
+                { onPress = Just ToggleTent
+                , label =
+                    image
+                        [ height <| px 60
+                        , width <| px 60
+                        ]
+                        { src = "/glo.png"
+                        , description = ""
+                        }
+                }
+                |> inFront
+                |> whenAttr
+                    (model.selected
+                        |> unwrap False (.tier >> (==) Tier3)
+                    )
             ]
             { src = "/world-desktop.png", description = "" }
       ]
@@ -373,20 +543,28 @@ viewEggs model =
                 in
                 wallet.stake
                     |> unwrap
-                        (wallet.nfts
-                            |> Array.fromList
-                            |> Array.get model.nftIndex
+                        (model.selected
                             |> unwrap
-                                (yellowButton False
-                                    model.isMobile
-                                    (gradientText "...")
-                                    Nothing
-                                    |> viewStack model.isMobile
+                                (wallet.nfts
+                                    |> Array.fromList
+                                    |> Array.get model.nftIndex
+                                    |> unwrap
+                                        (yellowButton False
+                                            model.isMobile
+                                            (newTabLink []
+                                                { url = "https://app.goosefx.io/NFTs"
+                                                , label = gradientText "Get an egg 🡕"
+                                                }
+                                            )
+                                            Nothing
+                                            |> viewStack model.isMobile
+                                        )
+                                        (viewSelectNft inProgress
+                                            (List.length wallet.nfts > 1)
+                                            model.isMobile
+                                        )
                                 )
-                                (viewIncubate inProgress
-                                    (List.length wallet.nfts > 1)
-                                    model.isMobile
-                                )
+                                (viewSelected inProgress model.isMobile)
                         )
                         (withdrawButton inProgress model.isMobile model.time
                             >> viewStack model.isMobile
@@ -463,8 +641,155 @@ positionNFTWidget isMobile =
         ]
 
 
-viewIncubate : Bool -> Bool -> Bool -> Nft -> Element Msg
-viewIncubate inProgress hasMultiple isMobile nft =
+viewSelected : Bool -> Bool -> Nft -> Element Msg
+viewSelected inProgress isMobile nft =
+    [ image
+        [ height <|
+            px
+                (if isMobile then
+                    120
+
+                 else
+                    203
+                )
+        , centerX
+        , nft.name
+            |> String.filter ((/=) nullByte)
+            |> String.split "#"
+            |> List.reverse
+            |> List.head
+            |> Maybe.andThen String.toInt
+            |> whenJust
+                (formatInt
+                    >> text
+                    >> el
+                        [ Font.color white
+                        , centerX
+                        , Font.size
+                            (if isMobile then
+                                15
+
+                             else
+                                18
+                            )
+                        , meriendaRegular
+                        , moveDown
+                            (if isMobile then
+                                70
+
+                             else
+                                130
+                            )
+                        , Font.bold
+                        ]
+                )
+            |> inFront
+        ]
+        { src =
+            case nft.tier of
+                Tier1 ->
+                    "/egg-present.png"
+
+                Tier2 ->
+                    "/tier2.png"
+
+                Tier3 ->
+                    "/tier3.png"
+        , description = ""
+        }
+        |> (\x ->
+                let
+                    ( hd, content ) =
+                        case nft.tier of
+                            Tier1 ->
+                                ( "Tier 1"
+                                , text "This egg will need to be staked for 30 days to upgrade."
+                                )
+
+                            Tier2 ->
+                                ( "Tier 2"
+                                , [ text "You will need to "
+                                  , newTabLink [ Font.underline, hover, Font.bold ]
+                                        { url = "https://app.goosefx.io/farm"
+                                        , label = text "stake 25 GOFX"
+                                        }
+                                  , text " with this wallet for "
+                                  , text "7 days"
+                                        |> el [ Font.bold ]
+                                  , text " before upgrading this NFT."
+                                  ]
+                                    |> paragraph []
+                                )
+
+                            Tier3 ->
+                                ( "Tier 3"
+                                , text "Your Gosling is growing stronger."
+                                )
+                in
+                [ Input.button [ hover, fadeIn ]
+                    { onPress = Just <| SelectNft Nothing
+                    , label = x
+                    }
+                , yellowButton inProgress
+                    isMobile
+                    (gradientText
+                        (case nft.tier of
+                            Tier1 ->
+                                "Incubate Egg"
+
+                            Tier2 ->
+                                "Upgrade"
+
+                            Tier3 ->
+                                "..."
+                        )
+                    )
+                    (case nft.tier of
+                        Tier1 ->
+                            Just <| Incubate nft.mintId
+
+                        Tier2 ->
+                            Just <| SignTimestamp nft.mintId
+
+                        Tier3 ->
+                            Nothing
+                    )
+                    |> el [ centerX ]
+                , [ gradientText hd
+                        |> el [ centerX, Font.size 22 ]
+                  , [ content ]
+                        |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
+                  ]
+                    |> column
+                        [ Background.color sand
+                        , Border.width 3
+                        , Border.color white
+                        , Border.rounded 25
+                        , padding 15
+                        , moveDown 10
+                        , centerX
+                        , spacing 15
+                        , width <| px 240
+                        ]
+                ]
+                    |> column [ fadeIn, spacing 0 ]
+           )
+    ]
+        |> column
+            (case nft.tier of
+                Tier1 ->
+                    [ alignRight, moveLeft 270, moveDown 400 ]
+
+                Tier2 ->
+                    [ alignRight, moveLeft 255, moveDown 190 ]
+
+                Tier3 ->
+                    [ alignRight, moveLeft 600, moveDown 370 ]
+            )
+
+
+viewSelectNft : Bool -> Bool -> Bool -> Nft -> Element Msg
+viewSelectNft inProgress hasMultiple isMobile nft =
     [ image
         [ height <|
             px
@@ -585,128 +910,13 @@ viewIncubate inProgress hasMultiple isMobile nft =
         }
     , yellowButton inProgress
         isMobile
-        (gradientText
-            (case nft.tier of
-                Tier1 ->
-                    "Incubate Egg"
-
-                Tier2 ->
-                    "Upgrade"
-
-                Tier3 ->
-                    "..."
-            )
-        )
-        (case nft.tier of
-            Tier1 ->
-                Just <| Incubate nft.mintId
-
-            Tier2 ->
-                Just <| SignTimestamp nft.mintId
-
-            Tier3 ->
-                Nothing
-        )
+        (gradientText "Select")
+        (Just <| SelectNft <| Just nft)
         |> el
             [ centerX
-            , let
-                ( hd, content ) =
-                    case nft.tier of
-                        Tier1 ->
-                            ( "Tier 1"
-                            , text "This egg will need to be staked for 30 days to upgrade."
-                            )
-
-                        Tier2 ->
-                            ( "Tier 2"
-                            , [ text "You will need to "
-                              , newTabLink [ Font.underline, hover, Font.bold ]
-                                    { url = "https://app.goosefx.io/farm"
-                                    , label = text "stake 25 GOFX"
-                                    }
-                              , text " with this wallet for "
-                              , text "7 days"
-                                    |> el [ Font.bold ]
-                              , text " before upgrading this NFT."
-                              ]
-                                |> paragraph []
-                            )
-
-                        Tier3 ->
-                            ( "Tier 3"
-                            , text "Your Gosling is growing stronger."
-                            )
-              in
-              [ gradientText hd
-                    |> el [ centerX, Font.size 22 ]
-              , [ content ]
-                    |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
-              ]
-                |> column
-                    [ Background.color sand, Border.width 3, Border.color white, Border.rounded 25, padding 15, moveDown 10, centerX, spacing 15 ]
-                |> when (not isMobile)
-                |> below
             ]
     ]
         |> positionNFTWidget isMobile
-
-
-getEgg : Bool -> Element msg
-getEgg isMobile =
-    let
-        w =
-            if isMobile then
-                150
-
-            else
-                230
-
-        h =
-            if isMobile then
-                35
-
-            else
-                58
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
-    in
-    newTabLink [ hover ]
-        { url = "https://form.nestquest.io/"
-        , label =
-            [ image
-                [ width <|
-                    px
-                        (if isMobile then
-                            120
-
-                         else
-                            243
-                        )
-                , centerX
-                ]
-                { src = "/egg-present.png"
-                , description = ""
-                }
-            , gradientText "Get an egg"
-                |> el [ centerX, centerY ]
-                |> el
-                    [ height <| px h
-                    , width <| px w
-                    , Border.width 3
-                    , Border.color wine
-                    , Border.rounded 30
-                    , Background.color sand
-                    , Font.size fnt
-                    ]
-            ]
-                |> column []
-        }
-        |> when False
 
 
 bg : Color
@@ -880,8 +1090,6 @@ fade =
 
 formatAddress : String -> String
 formatAddress addr =
-    --|> text
-    --|> el [ Font.color gold, centerX, Font.bold ]
     String.left 4 addr
         ++ "..."
         ++ String.right 4 addr
@@ -943,7 +1151,7 @@ withdrawButton inProgress isMobile time stake =
         canWithdraw =
             time >= stake.stakingStart
     in
-    yellowButton False
+    yellowButton inProgress
         isMobile
         (if canWithdraw then
             gradientText "Evolve"
@@ -952,7 +1160,7 @@ withdrawButton inProgress isMobile time stake =
             calcCountdown diff
                 |> gradientText
         )
-        (if canWithdraw && not inProgress then
+        (if canWithdraw then
             Just <| Withdraw stake.mintId
 
          else

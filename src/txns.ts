@@ -7,10 +7,11 @@ import { web3, utils } from "@project-serum/anchor";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { BaseSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { z } from "zod";
-import { deposit as depositFn } from "./codegen/instructions/deposit";
-import { withdraw as withdrawFn } from "./codegen/instructions/withdraw";
-import { Stake } from "./codegen/accounts/Stake";
-import { PROGRAM_ID } from "./codegen/programId";
+import { deposit as depositFn } from "./codegen/staking/instructions/deposit";
+import { withdraw as withdrawFn } from "./codegen/staking/instructions/withdraw";
+import { claimOrb } from "./codegen/staking/instructions/claimOrb";
+import { Stake } from "./codegen/staking/accounts/Stake";
+import { PROGRAM_ID } from "./codegen/staking/programId";
 
 // @ts-ignore
 // eslint-disable-next-line no-undef
@@ -21,6 +22,14 @@ const UPDATE_AUTH = new web3.PublicKey(
 );
 
 const GOFX = new web3.PublicKey("GFX1ZjR2P15tmrSwow6FjyDYcEkoFb4p4gJCpLBjaxHD");
+
+const ORB_MINT = new web3.PublicKey(
+  "orbs7FDskYc92kNer1M9jHBFaB821iCmPJkumZA4yyd"
+);
+
+const NESTQUEST_AUTHORITY = new web3.PublicKey(
+  "3aBcwyPV6fSDKs3iB9UB7wHUkcNPE6HdKqcFzdbWS2Pw"
+);
 
 const connection = new web3.Connection(RPC_URL, {
   confirmTransactionInitialTimeout: 60000,
@@ -216,6 +225,72 @@ const deposit = async (
   return launch(wallet, transaction);
 };
 
+const claim = async (
+  wallet: BaseSignerWalletAdapter,
+  mintId: web3.PublicKey,
+  sig: number[]
+) => {
+  if (!wallet.publicKey) {
+    throw "No publicKey";
+  }
+
+  const userOrbAcct = await utils.token.associatedAddress({
+    mint: ORB_MINT,
+    owner: wallet.publicKey,
+  });
+  const userOrbData = await connection.getAccountInfo(userOrbAcct);
+
+  const [claimState] = await web3.PublicKey.findProgramAddress(
+    [Buffer.from("orb"), mintId.toBytes()],
+    PROGRAM_ID
+  );
+
+  const [authorityAcct] = await web3.PublicKey.findProgramAddress(
+    [Buffer.from("orb")],
+    PROGRAM_ID
+  );
+
+  const accounts = {
+    payer: wallet.publicKey,
+    userOrbAcct,
+    authorityAcct,
+    claimState,
+    orbMint: ORB_MINT,
+    tier3Nft: mintId,
+    instructions: web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+    tokenProgram: utils.token.TOKEN_PROGRAM_ID,
+    systemProgram: web3.SystemProgram.programId,
+  };
+
+  const edIx = web3.Ed25519Program.createInstructionWithPublicKey({
+    message: mintId.toBytes(),
+    publicKey: NESTQUEST_AUTHORITY.toBytes(),
+    signature: Buffer.from(sig),
+  });
+
+  const transaction = new web3.Transaction();
+
+  if (!userOrbData) {
+    transaction.add(
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        userOrbAcct,
+        wallet.publicKey,
+        ORB_MINT,
+        utils.token.TOKEN_PROGRAM_ID,
+        utils.token.ASSOCIATED_PROGRAM_ID
+      )
+    );
+  }
+
+  transaction.add(edIx);
+
+  const ix = claimOrb(accounts);
+  transaction.add(ix);
+
+  return launch(wallet, transaction);
+};
+
 const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
   const tokensRaw = await connection.getParsedTokenAccountsByOwner(
     walletAddress,
@@ -259,7 +334,7 @@ const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
 };
 
 const parseNft = async (metadata: Metadata): Promise<Nft> => {
-  const res = await fetch(metadata.data.uri, { cache: "no-cache" });
+  const res = await fetch(metadata.data.uri, { cache: "no-store" });
   const json = await res.json();
   const offchain = Offchain.parse(json);
   return {
@@ -279,4 +354,12 @@ const fetchNFT = async (mintId: web3.PublicKey): Promise<Nft> => {
   return parseNft(metadata);
 };
 
-export { withdraw, hasBeenStaked, fetchOwned, fetchStake, deposit, fetchNFT };
+export {
+  withdraw,
+  hasBeenStaked,
+  fetchOwned,
+  fetchStake,
+  deposit,
+  fetchNFT,
+  claim,
+};

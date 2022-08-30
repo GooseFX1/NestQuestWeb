@@ -1,6 +1,6 @@
-import { PublicKey, TransactionInstruction } from "@solana/web3.js"
-import BN from "bn.js"
-import * as borsh from "@project-serum/borsh"
+import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@project-serum/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface WithdrawArgs {
@@ -25,7 +25,7 @@ export const layout = borsh.struct([
 ])
 
 export function withdraw(args: WithdrawArgs, accounts: WithdrawAccounts) {
-  const keys = [
+  const keys: Array<AccountMeta> = [
     { pubkey: accounts.payer, isSigner: true, isWritable: true },
     { pubkey: accounts.vault, isSigner: false, isWritable: true },
     { pubkey: accounts.tokenAccount, isSigner: false, isWritable: true },

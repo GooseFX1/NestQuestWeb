@@ -2,7 +2,7 @@ const { resolve } = require("path");
 const webpack = require("webpack");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
-const { RPC_URL } = process.env;
+const { RPC_URL, PROGRAM_ID, BACKEND_URL } = process.env;
 
 const publicFolder = resolve("./public");
 
@@ -19,7 +19,7 @@ module.exports = (env) => {
   };
 
   const elmLoader = devMode
-    ? [{ loader: "elm-hot-webpack-loader" }, loaderConfig]
+    ? [{ loader: "elm-reloader" }, loaderConfig]
     : [loaderConfig];
 
   return {
@@ -68,6 +68,8 @@ module.exports = (env) => {
       new webpack.NoEmitOnErrorsPlugin(),
       new webpack.DefinePlugin({
         RPC_URL_: JSON.stringify(RPC_URL),
+        BACKEND_URL_: JSON.stringify(BACKEND_URL),
+        PROGRAM_ID_: JSON.stringify(PROGRAM_ID),
       }),
     ],
   };

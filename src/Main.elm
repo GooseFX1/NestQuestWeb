@@ -34,6 +34,10 @@ init flags =
       , playButtonPulse = True
       , nftIndex = 0
       , ticks = Ticks.empty
+      , selected = Nothing
+      , tentOpen = False
+      , prizeStatus = Types.ReadyToChoose
+      , backendUrl = flags.backendUrl
       }
     , Cmd.none
     )
@@ -62,6 +66,9 @@ subscriptions _ =
 
                         SignResponse val ->
                             Types.SignResponse val
+
+                        ClaimOrbResponse val ->
+                            Types.ClaimOrbResponse val
                 )
             )
     ]
