@@ -1,32 +1,34 @@
 module View exposing (view)
 
-import Array
-import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FormatNumber
-import FormatNumber.Locales exposing (usLocale)
-import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr, whenJust)
+import Helpers.View exposing (cappedHeight, cappedWidth, style, when, whenAttr)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..))
+import Types exposing (Model, Msg(..), PrizeStatus(..), Tier(..))
+import View.Game
 import View.Img as Img
+import View.Shared exposing (..)
 
 
 view : Model -> Html Msg
 view model =
-    (if model.isMobile then
-        viewMobile model
+    (case model.view of
+        Types.ViewHome ->
+            if model.isMobile then
+                viewMobile model
 
-     else
-        viewDesktop model
+            else
+                viewDesktop model
+
+        Types.ViewGame ->
+            View.Game.view model
     )
         |> Element.layoutWith
             { options =
@@ -56,161 +58,7 @@ view model =
             , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
-            , viewChests model.isMobile model.prizeStatus
-                |> el
-                    [ Background.color sand
-                    , Border.width 3
-                    , Border.color white
-                    , Border.rounded 25
-                    , padding 40
-                    , Input.button
-                        [ alignTop
-                        , alignRight
-                        , padding 20
-                        , hover
-                        , Font.bold
-                        , Font.size 35
-                        ]
-                        { onPress = Just ToggleTent
-                        , label = text "X"
-                        }
-                        |> inFront
-                    ]
-                |> el
-                    [ padding 50
-                    , centerX
-                    , centerY
-                    ]
-                |> inFront
-                |> whenAttr model.tentOpen
             ]
-
-
-viewChests : Bool -> PrizeStatus -> Element Msg
-viewChests isMobile status =
-    let
-        chooser curr =
-            [ gradientText "Try your luck..."
-                |> el [ centerX, Font.size 36 ]
-            , [ List.range 0 3
-                    |> List.map (viewChest curr)
-                    |> row [ spacing 20 ]
-              , List.range 0 2
-                    |> List.map ((+) 4 >> viewChest curr)
-                    |> row [ spacing 20, centerX ]
-              ]
-                |> column [ centerX ]
-            ]
-                |> column
-                    [ spacing 10
-                    ]
-    in
-    case status of
-        ReadyToChoose ->
-            chooser Nothing
-
-        Choosing n ->
-            chooser (Just n)
-
-        WaitUntilTomorrow ->
-            [ chest False 200
-                |> el [ centerX ]
-            , [ gradientText "The wind has not blown in your favour."
-                    |> el [ centerX, Font.size 26 ]
-              , text "Try again tomorrow."
-                    |> el
-                        [ centerX
-                        , Font.italic
-                        , Font.size 23
-                        , Font.color wine
-                        , meriendaBold
-                        ]
-              , yellowButton False
-                    isMobile
-                    (gradientText "Continue")
-                    (Just ToggleTent)
-                    |> el [ centerX ]
-              ]
-                |> column [ spacing 20 ]
-            ]
-                |> column [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        ClaimYourPrize sig ->
-            [ chest True 200
-                |> el [ centerX ]
-            , [ gradientText "You can claim your reward."
-                    |> el [ centerX, Font.size 26 ]
-              , yellowButton False
-                    isMobile
-                    (gradientText "Claim")
-                    (Just <| ClaimOrb sig)
-                    |> el [ centerX ]
-              ]
-                |> column [ spacing 20 ]
-            ]
-                |> column [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        Checking ->
-            spinner 50
-                |> el [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        AlreadyClaimed ->
-            [ image [ width <| px 175 ]
-                { src = "/orb.png"
-                , description = ""
-                }
-                |> el [ centerX ]
-            , gradientText "You have claimed your reward successfully."
-                |> el [ centerX, Font.size 26 ]
-            , yellowButton False
-                isMobile
-                (gradientText "Continue")
-                (Just ToggleTent)
-                |> el [ centerX ]
-            ]
-                |> column [ centerY, centerX, fadeIn, spacing 20 ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-
-viewChest curr n =
-    Input.button
-        [ if isJust curr then
-            fade
-
-          else
-            hover
-        , spinner 30
-            |> el [ centerX, centerY ]
-            |> inFront
-            |> whenAttr (curr == Just n)
-        ]
-        { onPress =
-            if isJust curr then
-                Nothing
-
-            else
-                Just <| SelectChest n
-        , label =
-            image [ width <| px 200 ]
-                { src = "/chest_closed.png"
-                , description = ""
-                }
-        }
-
-
-chest orb n =
-    image [ width <| px n ]
-        { src =
-            if orb then
-                "/chest_open_stone.png"
-
-            else
-                "/chest_open_empty.png"
-        , description = ""
-        }
 
 
 viewMobile : Model -> Element Msg
@@ -242,6 +90,12 @@ viewMobile model =
             [ cappedWidth 381
             , height <| px 2198
             , centerX
+            , yellowButton False
+                True
+                (gradientText "Play Game")
+                (Just <| SetView Types.ViewGame)
+                |> el [ centerX, moveDown 100 ]
+                |> inFront
             , [ el [ height <| px 100, width fill ] none
               , image
                     [ height <| px 480
@@ -313,8 +167,6 @@ viewMobile model =
                     , spacing 15
                     ]
                 |> inFront
-            , viewEggs model
-                |> inFront
             , viewStats True
                 |> el [ width fill, moveDown 280 ]
                 |> inFront
@@ -340,24 +192,33 @@ viewDesktop model =
             |> el [ padding 20 ]
       , [ image
             [ centerX
-            , width <| px 276
+            , width <| px 550
+            , fadeIn
             ]
             { src = "/logo.png", description = "" }
-        , image
-            [ centerX
-            , width <| px 639
-            ]
-            { src = "/slogan.png", description = "" }
+
+        --, image
+        --[ centerX
+        --, width <| px 639
+        --]
+        --{ src = "/slogan.png", description = "" }
         ]
             |> column
                 [ width fill
-                , padding 50
+
+                --, padding 50
                 , spacing 40
                 ]
       , image
             [ centerX
             , width <| px 1401
             , height <| px 3153
+            , yellowButton False
+                False
+                (gradientText "Play Game")
+                (Just <| SetView Types.ViewGame)
+                |> el [ centerX, moveDown 460 ]
+                |> inFront
             , image
                 [ centerX
                 , moveDown 1048
@@ -482,33 +343,10 @@ viewDesktop model =
                 ]
                 { src = "/parchment-desktop.svg", description = "" }
                 |> inFront
-            , viewEggs model
-                |> inFront
             , viewStats False
                 |> el [ centerX, width <| px 1000, moveDown 850 ]
                 |> inFront
-            , Input.button
-                [ centerX
-                , moveDown 260
-                , moveLeft 90
-                , style "animation" "bob 2s infinite ease"
-                , hover
-                ]
-                { onPress = Just ToggleTent
-                , label =
-                    image
-                        [ height <| px 60
-                        , width <| px 60
-                        ]
-                        { src = "/glo.png"
-                        , description = ""
-                        }
-                }
-                |> inFront
-                |> whenAttr
-                    (model.selected
-                        |> unwrap False (.tier >> (==) Tier3)
-                    )
+            , fadeIn
             ]
             { src = "/world-desktop.png", description = "" }
       ]
@@ -523,53 +361,6 @@ viewDesktop model =
             [ width fill
             , height fill
             ]
-
-
-viewEggs : Model -> Element Msg
-viewEggs model =
-    model.wallet
-        |> unwrap
-            (viewStack model.isMobile
-                (connectButton (Ticks.get 0 model.ticks)
-                    model.isMobile
-                    (Maybe.map .address model.wallet)
-                    model.dropdown
-                )
-            )
-            (\wallet ->
-                let
-                    inProgress =
-                        Ticks.get 1 model.ticks
-                in
-                wallet.stake
-                    |> unwrap
-                        (model.selected
-                            |> unwrap
-                                (wallet.nfts
-                                    |> Array.fromList
-                                    |> Array.get model.nftIndex
-                                    |> unwrap
-                                        (yellowButton False
-                                            model.isMobile
-                                            (newTabLink []
-                                                { url = "https://app.goosefx.io/NFTs"
-                                                , label = gradientText "Get an egg 🡕"
-                                                }
-                                            )
-                                            Nothing
-                                            |> viewStack model.isMobile
-                                        )
-                                        (viewSelectNft inProgress
-                                            (List.length wallet.nfts > 1)
-                                            model.isMobile
-                                        )
-                                )
-                                (viewSelected inProgress model.isMobile)
-                        )
-                        (withdrawButton inProgress model.isMobile model.time
-                            >> viewStack model.isMobile
-                        )
-            )
 
 
 infoText : List (Element msg)
@@ -591,381 +382,6 @@ infoText =
       ]
         |> paragraph []
     ]
-
-
-viewStack : Bool -> Element Msg -> Element Msg
-viewStack isMobile elem =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
-
-                 else
-                    203
-                )
-        , centerX
-        ]
-        { src = "/egg-pending.png"
-        , description = ""
-        }
-    , elem
-        |> el
-            [ centerX
-            ]
-    ]
-        |> positionNFTWidget isMobile
-
-
-positionNFTWidget : Bool -> List (Element msg) -> Element msg
-positionNFTWidget isMobile =
-    let
-        down =
-            if isMobile then
-                80
-
-            else
-                395
-
-        left =
-            if isMobile then
-                0
-
-            else
-                120
-    in
-    column
-        [ alignRight
-        , moveDown down
-        , moveLeft left
-        ]
-
-
-viewSelected : Bool -> Bool -> Nft -> Element Msg
-viewSelected inProgress isMobile nft =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
-
-                 else
-                    203
-                )
-        , centerX
-        , nft.name
-            |> String.filter ((/=) nullByte)
-            |> String.split "#"
-            |> List.reverse
-            |> List.head
-            |> Maybe.andThen String.toInt
-            |> whenJust
-                (formatInt
-                    >> text
-                    >> el
-                        [ Font.color white
-                        , centerX
-                        , Font.size
-                            (if isMobile then
-                                15
-
-                             else
-                                18
-                            )
-                        , meriendaRegular
-                        , moveDown
-                            (if isMobile then
-                                70
-
-                             else
-                                130
-                            )
-                        , Font.bold
-                        ]
-                )
-            |> inFront
-        ]
-        { src =
-            case nft.tier of
-                Tier1 ->
-                    "/egg-present.png"
-
-                Tier2 ->
-                    "/tier2.png"
-
-                Tier3 ->
-                    "/tier3.png"
-        , description = ""
-        }
-        |> (\x ->
-                let
-                    ( hd, content ) =
-                        case nft.tier of
-                            Tier1 ->
-                                ( "Tier 1"
-                                , text "This egg will need to be staked for 30 days to upgrade."
-                                )
-
-                            Tier2 ->
-                                ( "Tier 2"
-                                , [ text "You will need to "
-                                  , newTabLink [ Font.underline, hover, Font.bold ]
-                                        { url = "https://app.goosefx.io/farm"
-                                        , label = text "stake 25 GOFX"
-                                        }
-                                  , text " with this wallet for "
-                                  , text "7 days"
-                                        |> el [ Font.bold ]
-                                  , text " before upgrading this NFT."
-                                  ]
-                                    |> paragraph []
-                                )
-
-                            Tier3 ->
-                                ( "Tier 3"
-                                , text "Your Gosling is growing stronger."
-                                )
-                in
-                [ Input.button [ hover, fadeIn ]
-                    { onPress = Just <| SelectNft Nothing
-                    , label = x
-                    }
-                , yellowButton inProgress
-                    isMobile
-                    (gradientText
-                        (case nft.tier of
-                            Tier1 ->
-                                "Incubate Egg"
-
-                            Tier2 ->
-                                "Upgrade"
-
-                            Tier3 ->
-                                "..."
-                        )
-                    )
-                    (case nft.tier of
-                        Tier1 ->
-                            Just <| Incubate nft.mintId
-
-                        Tier2 ->
-                            Just <| SignTimestamp nft.mintId
-
-                        Tier3 ->
-                            Nothing
-                    )
-                    |> el [ centerX ]
-                , [ gradientText hd
-                        |> el [ centerX, Font.size 22 ]
-                  , [ content ]
-                        |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
-                  ]
-                    |> column
-                        [ Background.color sand
-                        , Border.width 3
-                        , Border.color white
-                        , Border.rounded 25
-                        , padding 15
-                        , moveDown 10
-                        , centerX
-                        , spacing 15
-                        , width <| px 240
-                        ]
-                ]
-                    |> column [ fadeIn, spacing 0 ]
-           )
-    ]
-        |> column
-            (case nft.tier of
-                Tier1 ->
-                    [ alignRight, moveLeft 270, moveDown 400 ]
-
-                Tier2 ->
-                    [ alignRight, moveLeft 255, moveDown 190 ]
-
-                Tier3 ->
-                    [ alignRight, moveLeft 600, moveDown 370 ]
-            )
-
-
-viewSelectNft : Bool -> Bool -> Bool -> Nft -> Element Msg
-viewSelectNft inProgress hasMultiple isMobile nft =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
-
-                 else
-                    203
-                )
-        , centerX
-        , nft.name
-            |> String.filter ((/=) nullByte)
-            |> String.split "#"
-            |> List.reverse
-            |> List.head
-            |> Maybe.andThen String.toInt
-            |> whenJust
-                (formatInt
-                    >> text
-                    >> el
-                        [ Font.color white
-                        , centerX
-                        , Font.size
-                            (if isMobile then
-                                15
-
-                             else
-                                18
-                            )
-                        , meriendaRegular
-                        , moveDown
-                            (if isMobile then
-                                70
-
-                             else
-                                130
-                            )
-                        , Font.bold
-                        ]
-                )
-            |> inFront
-        , Input.button
-            [ moveDown
-                (if isMobile then
-                    42
-
-                 else
-                    80
-                )
-            , alignLeft
-            , moveLeft
-                (if isMobile then
-                    14
-
-                 else
-                    5
-                )
-            , hover
-            ]
-            { onPress =
-                if inProgress then
-                    Nothing
-
-                else
-                    Just <| NftSelect True
-            , label =
-                image
-                    [ height <| px 60
-                    ]
-                    { src = "/back.png", description = "" }
-            }
-            |> when hasMultiple
-            |> inFront
-        , Input.button
-            [ moveDown
-                (if isMobile then
-                    40
-
-                 else
-                    80
-                )
-            , alignRight
-            , moveRight
-                (if isMobile then
-                    15
-
-                 else
-                    5
-                )
-            , hover
-            ]
-            { onPress =
-                if inProgress then
-                    Nothing
-
-                else
-                    Just <| NftSelect False
-            , label =
-                image
-                    [ height <| px 60
-                    ]
-                    { src = "/next.png", description = "" }
-            }
-            |> when hasMultiple
-            |> inFront
-        ]
-        { src =
-            case nft.tier of
-                Tier1 ->
-                    "/egg-present.png"
-
-                Tier2 ->
-                    "/tier2.png"
-
-                Tier3 ->
-                    "/tier3.png"
-        , description = ""
-        }
-    , yellowButton inProgress
-        isMobile
-        (gradientText "Select")
-        (Just <| SelectNft <| Just nft)
-        |> el
-            [ centerX
-            ]
-    ]
-        |> positionNFTWidget isMobile
-
-
-bg : Color
-bg =
-    rgb255 42 42 42
-
-
-brown : Color
-brown =
-    rgb255 139 86 10
-
-
-wine : Color
-wine =
-    rgb255 118 78 1
-
-
-sand : Color
-sand =
-    rgb255 233 211 148
-
-
-white : Color
-white =
-    rgb255 255 255 255
-
-
-black : Color
-black =
-    rgb255 0 0 0
-
-
-gold : Color
-gold =
-    rgb255 148 98 2
-
-
-meriendaRegular : Attribute msg
-meriendaRegular =
-    Font.family
-        [ Font.typeface "Merienda Regular"
-        ]
-
-
-meriendaBold : Attribute msg
-meriendaBold =
-    Font.family
-        [ Font.typeface "Merienda Bold"
-        ]
 
 
 boxM : ( Int, Int, String ) -> Element msg
@@ -1078,23 +494,6 @@ bump elem =
         |> column []
 
 
-hover : Attribute msg
-hover =
-    Element.mouseOver [ fade ]
-
-
-fade : Element.Attr a b
-fade =
-    Element.alpha 0.7
-
-
-formatAddress : String -> String
-formatAddress addr =
-    String.left 4 addr
-        ++ "..."
-        ++ String.right 4 addr
-
-
 playButton : Bool -> Bool -> Maybe String -> Bool -> Bool -> Element Msg
 playButton connectInProgress pulse addr playing dropdown =
     [ connectButton connectInProgress False addr dropdown
@@ -1137,142 +536,6 @@ musicButton pulse playing =
                 , description = ""
                 }
         }
-
-
-withdrawButton : Bool -> Bool -> Int -> Stake -> Element Msg
-withdrawButton inProgress isMobile time stake =
-    let
-        stakingEnd =
-            stake.stakingStart
-
-        diff =
-            Duration.seconds (toFloat (max 0 (stakingEnd - time)))
-
-        canWithdraw =
-            time >= stake.stakingStart
-    in
-    yellowButton inProgress
-        isMobile
-        (if canWithdraw then
-            gradientText "Evolve"
-
-         else
-            calcCountdown diff
-                |> gradientText
-        )
-        (if canWithdraw then
-            Just <| Withdraw stake.mintId
-
-         else
-            Nothing
-        )
-
-
-calcCountdown : Duration.Duration -> String
-calcCountdown diff =
-    let
-        days =
-            Duration.inDays diff
-
-        daysMins =
-            days
-                |> floor
-                |> toFloat
-                |> Duration.days
-                |> Duration.inMinutes
-
-        daysSeconds =
-            days
-                |> floor
-                |> toFloat
-                |> Duration.days
-                |> Duration.inSeconds
-
-        hours =
-            Duration.inMinutes diff
-                - daysMins
-                |> Duration.minutes
-                |> Duration.inHours
-
-        hoursSeconds =
-            hours
-                |> floor
-                |> toFloat
-                |> Duration.hours
-                |> Duration.inSeconds
-
-        mins =
-            Duration.inSeconds diff
-                - daysSeconds
-                - hoursSeconds
-                |> Duration.seconds
-                |> Duration.inMinutes
-    in
-    [ String.fromInt <| floor days
-    , "d: "
-    , String.fromInt <| floor hours
-    , "h: "
-    , String.fromInt <| floor mins
-    , "m"
-    ]
-        |> String.concat
-
-
-connectButton : Bool -> Bool -> Maybe String -> Bool -> Element Msg
-connectButton inProgress isMobile addr dropdown =
-    [ yellowButton inProgress
-        isMobile
-        (addr
-            |> unwrap
-                (gradientText "Connect Wallet")
-                (\val ->
-                    [ gradientText (formatAddress val)
-                    , image
-                        [ height <| px 30, width <| px 30 ]
-                        { src = "/caret.svg", description = "" }
-                    ]
-                        |> row [ spacing 10 ]
-                )
-        )
-        (if addr == Nothing then
-            Just ToggleWalletSelect
-
-         else
-            Just ToggleDropdown
-        )
-    , el
-        [ [ Input.button [ centerX, hover ]
-                { onPress = Just ChangeWallet
-                , label = gradientText "Change Wallet"
-                }
-          , Input.button [ centerX, hover ]
-                { onPress = Just Disconnect
-                , label = gradientText "Disconnect Wallet"
-                }
-          ]
-            |> column
-                [ spacing 20
-                , Background.color sand
-                , width fill
-                , padding 20
-                , Border.rounded 10
-                , Border.width 3
-                , Border.color wine
-                , Font.size
-                    (if isMobile then
-                        14
-
-                     else
-                        19
-                    )
-                ]
-            |> below
-            |> whenAttr dropdown
-        , width fill
-        ]
-        none
-    ]
-        |> column [ spacing 10 ]
 
 
 walletSelect : Bool -> Element Msg
@@ -1413,50 +676,6 @@ walletPill n isMobile =
         }
 
 
-gradientText : String -> Element msg
-gradientText =
-    gradientTextHelper 1.2
-
-
-gradientTextHelper : Float -> String -> Element msg
-gradientTextHelper stroke txt =
-    [ Html.text txt ]
-        |> Html.div
-            [ Html.Attributes.style
-                "-webkit-text-stroke"
-                (String.fromFloat stroke ++ "px rgb(118, 78, 1)")
-            , Html.Attributes.style
-                "background-image"
-                """linear-gradient(
-                    to bottom,
-                    rgb(255, 214, 0) 26%,
-                    rgb(185, 117, 14) 78%
-                )"""
-            , Html.Attributes.style "-webkit-background-clip" "text"
-            , Html.Attributes.style "background-clip" "text"
-            , Html.Attributes.style "-webkit-text-fill-color" "transparent"
-            ]
-        |> html
-        |> el [ meriendaRegular ]
-
-
-fadeIn : Attribute msg
-fadeIn =
-    style "animation" "fadeIn 1s"
-
-
-gooseIcon : Int -> Element msg
-gooseIcon n =
-    newTabLink [ hover ]
-        { url = "https://www.goosefx.io"
-        , label =
-            image
-                [ width <| px n
-                ]
-                { src = "/brand.svg", description = "" }
-        }
-
-
 viewStats : Bool -> Element msg
 viewStats isMobile =
     let
@@ -1558,81 +777,6 @@ viewFooter =
         |> column [ width fill ]
 
 
-formatInt : Int -> String
-formatInt =
-    toFloat
-        >> FormatNumber.format
-            { usLocale
-                | decimals =
-                    FormatNumber.Locales.Exact 0
-            }
-
-
-yellowButton : Bool -> Bool -> Element msg -> Maybe msg -> Element msg
-yellowButton inProgress isMobile elem msg =
-    let
-        w =
-            if isMobile then
-                150
-
-            else
-                230
-
-        fnt =
-            if isMobile then
-                14
-
-            else
-                22
-    in
-    Input.button
-        [ height <| px 58
-        , width <| px w
-        , Border.width 3
-        , Border.color wine
-        , Border.rounded 30
-        , Background.color sand
-        , Font.size fnt
-        , if isJust msg then
-            hover
-
-          else
-            fade
-        , spinner 20
-            |> el [ alignRight, paddingXY 5 0, centerY ]
-            |> inFront
-            |> whenAttr inProgress
-        , style "cursor" "wait"
-            |> whenAttr inProgress
-        ]
-        { onPress =
-            if inProgress then
-                Nothing
-
-            else
-                msg
-        , label =
-            elem
-                |> el [ centerX ]
-        }
-
-
-nullByte : Char
-nullByte =
-    '\u{0000}'
-
-
-spinner : Int -> Element msg
-spinner n =
-    Img.notchedCircle black n
-        |> el [ spin ]
-
-
 docsLink : String
 docsLink =
     "https://docs.goosefx.io/tutorials/nestquest"
-
-
-spin : Attribute msg
-spin =
-    style "animation" "rotation 0.7s infinite linear"

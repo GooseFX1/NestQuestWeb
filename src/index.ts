@@ -68,17 +68,12 @@ const fetchState = async (
   if (!wallet.publicKey) {
     throw "No publicKey";
   }
-  const data = await txns.fetchStake(wallet.publicKey);
-  const stake = data
-    ? {
-        mintId: data.mintId.toString(),
-        stakingStart: data.stakingStart.toNumber(),
-      }
-    : null;
+
   return {
     address: wallet.publicKey.toString(),
     nfts: await txns.fetchOwned(wallet.publicKey),
-    stake,
+    stake: await txns.fetchStake(wallet.publicKey),
+    orbs: await txns.fetchOrbs(wallet.publicKey),
   };
 };
 

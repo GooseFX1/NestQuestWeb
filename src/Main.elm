@@ -36,8 +36,10 @@ init flags =
       , ticks = Ticks.empty
       , selected = Nothing
       , tentOpen = False
+      , inventoryOpen = False
       , prizeStatus = Types.ReadyToChoose
       , backendUrl = flags.backendUrl
+      , view = Types.ViewHome
       }
     , Cmd.none
     )

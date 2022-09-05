@@ -27,10 +27,6 @@ const ORB_MINT = new web3.PublicKey(
   "orbs7FDskYc92kNer1M9jHBFaB821iCmPJkumZA4yyd"
 );
 
-const NESTQUEST_AUTHORITY = new web3.PublicKey(
-  "3aBcwyPV6fSDKs3iB9UB7wHUkcNPE6HdKqcFzdbWS2Pw"
-);
-
 const connection = new web3.Connection(RPC_URL, {
   confirmTransactionInitialTimeout: 60000,
 });
@@ -110,7 +106,10 @@ const fetchStake = async (walletAddress: web3.PublicKey) => {
     return null;
   }
 
-  return stake;
+  return {
+    mintId: stake.mintId.toString(),
+    stakingStart: stake.stakingStart.toNumber(),
+  };
 };
 
 const withdraw = async (
@@ -264,7 +263,7 @@ const claim = async (
 
   const edIx = web3.Ed25519Program.createInstructionWithPublicKey({
     message: mintId.toBytes(),
-    publicKey: NESTQUEST_AUTHORITY.toBytes(),
+    publicKey: UPDATE_AUTH.toBytes(),
     signature: Buffer.from(sig),
   });
 
@@ -289,6 +288,23 @@ const claim = async (
   transaction.add(ix);
 
   return launch(wallet, transaction);
+};
+
+const fetchOrbs = async (walletAddress: web3.PublicKey): Promise<number> => {
+  const addr = await utils.token.associatedAddress({
+    mint: ORB_MINT,
+    owner: walletAddress,
+  });
+
+  const account = await connection.getAccountInfo(addr);
+
+  if (!account) {
+    return 0;
+  }
+
+  const token = await connection.getTokenAccountBalance(addr);
+
+  return parseInt(token.value.amount);
 };
 
 const fetchOwned = async (walletAddress: web3.PublicKey): Promise<Nft[]> => {
@@ -359,6 +375,7 @@ export {
   hasBeenStaked,
   fetchOwned,
   fetchStake,
+  fetchOrbs,
   deposit,
   fetchNFT,
   claim,

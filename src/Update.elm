@@ -1,6 +1,5 @@
 module Update exposing (update)
 
-import Array
 import Helpers.Http exposing (parseError)
 import Http
 import InteropDefinitions
@@ -8,8 +7,6 @@ import InteropPorts
 import Json.Decode as JD
 import Json.Encode as JE
 import Maybe.Extra exposing (unwrap)
-import Random
-import Random.List
 import Result.Extra exposing (unpack)
 import Ticks
 import Time
@@ -217,6 +214,7 @@ update msg model =
         SelectNft nft ->
             ( { model
                 | selected = nft
+                , inventoryOpen = False
               }
             , Cmd.none
             )
@@ -266,7 +264,11 @@ update msg model =
                     )
 
         ClaimOrb sig ->
-            ( model
+            ( { model
+                | ticks =
+                    model.ticks
+                        |> Ticks.tick 1
+              }
             , model.selected
                 |> unwrap Cmd.none
                     (\nft ->
@@ -287,12 +289,27 @@ update msg model =
 
         ClaimOrbResponse sig ->
             ( { model
-                | prizeStatus =
+                | ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+                , prizeStatus =
                     if Maybe.Extra.isJust sig then
                         Types.AlreadyClaimed
 
                     else
                         model.prizeStatus
+                , wallet =
+                    if Maybe.Extra.isJust sig then
+                        model.wallet
+
+                    else
+                        model.wallet
+                            |> Maybe.map
+                                (\wallet ->
+                                    { wallet
+                                        | orbs = wallet.orbs + 1
+                                    }
+                                )
               }
             , Cmd.none
             )
@@ -465,8 +482,19 @@ update msg model =
                         )
                     )
 
+        SetView v ->
+            ( { model | view = v }, Cmd.none )
+
         ToggleDropdown ->
             ( { model | dropdown = not model.dropdown }, Cmd.none )
+
+        ToggleInventory ->
+            ( { model
+                | inventoryOpen = not model.inventoryOpen
+                , selected = Nothing
+              }
+            , Cmd.none
+            )
 
         PlayTheme ->
             if model.themePlaying then
