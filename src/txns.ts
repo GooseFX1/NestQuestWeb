@@ -27,10 +27,6 @@ const ORB_MINT = new web3.PublicKey(
   "orbs7FDskYc92kNer1M9jHBFaB821iCmPJkumZA4yyd"
 );
 
-const NESTQUEST_AUTHORITY = new web3.PublicKey(
-  "3aBcwyPV6fSDKs3iB9UB7wHUkcNPE6HdKqcFzdbWS2Pw"
-);
-
 const connection = new web3.Connection(RPC_URL, {
   confirmTransactionInitialTimeout: 60000,
 });
@@ -267,7 +263,7 @@ const claim = async (
 
   const edIx = web3.Ed25519Program.createInstructionWithPublicKey({
     message: mintId.toBytes(),
-    publicKey: NESTQUEST_AUTHORITY.toBytes(),
+    publicKey: UPDATE_AUTH.toBytes(),
     signature: Buffer.from(sig),
   });
 

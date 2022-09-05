@@ -10,7 +10,6 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode as JD
-import Maybe.Extra exposing (isJust)
 import Ticks
 import Types exposing (Model, Msg(..), PrizeStatus(..), Tier(..))
 import View.Game
@@ -20,16 +19,16 @@ import View.Shared exposing (..)
 
 view : Model -> Html Msg
 view model =
-    (if model.isMobile then
-        viewMobile model
+    (case model.view of
+        Types.ViewHome ->
+            if model.isMobile then
+                viewMobile model
 
-     else
-        case model.view of
-            Types.ViewHome ->
+            else
                 viewDesktop model
 
-            Types.ViewGame ->
-                View.Game.view model
+        Types.ViewGame ->
+            View.Game.view model
     )
         |> Element.layoutWith
             { options =
@@ -59,162 +58,7 @@ view model =
             , walletSelect model.isMobile
                 |> inFront
                 |> whenAttr model.walletSelect
-            , viewChests model.isMobile model.prizeStatus
-                |> el
-                    [ Background.color sand
-                    , Border.width 3
-                    , Border.color white
-                    , Border.rounded 25
-                    , padding 40
-                    , fadeIn
-                    , Input.button
-                        [ alignTop
-                        , alignRight
-                        , padding 20
-                        , hover
-                        , Font.bold
-                        , Font.size 35
-                        ]
-                        { onPress = Just ToggleTent
-                        , label = text "X"
-                        }
-                        |> inFront
-                    ]
-                |> el
-                    [ padding 50
-                    , centerX
-                    , centerY
-                    ]
-                |> inFront
-                |> whenAttr model.tentOpen
             ]
-
-
-viewChests : Bool -> PrizeStatus -> Element Msg
-viewChests isMobile status =
-    let
-        chooser curr =
-            [ gradientText "Try your luck..."
-                |> el [ centerX, Font.size 36 ]
-            , [ List.range 0 3
-                    |> List.map (viewChest curr)
-                    |> row [ spacing 20 ]
-              , List.range 0 2
-                    |> List.map ((+) 4 >> viewChest curr)
-                    |> row [ spacing 20, centerX ]
-              ]
-                |> column [ centerX ]
-            ]
-                |> column
-                    [ spacing 10
-                    ]
-    in
-    case status of
-        ReadyToChoose ->
-            chooser Nothing
-
-        Choosing n ->
-            chooser (Just n)
-
-        WaitUntilTomorrow ->
-            [ chest False 200
-                |> el [ centerX ]
-            , [ gradientText "The wind has not blown in your favour."
-                    |> el [ centerX, Font.size 26 ]
-              , text "Try again tomorrow."
-                    |> el
-                        [ centerX
-                        , Font.italic
-                        , Font.size 23
-                        , Font.color wine
-                        , meriendaBold
-                        ]
-              , yellowButton False
-                    isMobile
-                    (gradientText "Continue")
-                    (Just ToggleTent)
-                    |> el [ centerX ]
-              ]
-                |> column [ spacing 20 ]
-            ]
-                |> column [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        ClaimYourPrize sig ->
-            [ chest True 200
-                |> el [ centerX ]
-            , [ gradientText "You can claim your reward."
-                    |> el [ centerX, Font.size 26 ]
-              , yellowButton False
-                    isMobile
-                    (gradientText "Claim")
-                    (Just <| ClaimOrb sig)
-                    |> el [ centerX ]
-              ]
-                |> column [ spacing 20 ]
-            ]
-                |> column [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        Checking ->
-            spinner 50
-                |> el [ centerY, centerX, fadeIn ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-        AlreadyClaimed ->
-            [ image [ width <| px 175 ]
-                { src = "/orb.png"
-                , description = ""
-                }
-                |> el [ centerX ]
-            , gradientText "You have claimed your reward successfully."
-                |> el [ centerX, Font.size 26 ]
-            , yellowButton False
-                isMobile
-                (gradientText "Continue")
-                (Just ToggleTent)
-                |> el [ centerX ]
-            ]
-                |> column [ centerY, centerX, fadeIn, spacing 20 ]
-                |> el [ width <| px 800, height <| px 400 ]
-
-
-viewChest curr n =
-    Input.button
-        [ if isJust curr then
-            fade
-
-          else
-            hover
-        , spinner 30
-            |> el [ centerX, centerY ]
-            |> inFront
-            |> whenAttr (curr == Just n)
-        ]
-        { onPress =
-            if isJust curr then
-                Nothing
-
-            else
-                Just <| SelectChest n
-        , label =
-            image [ width <| px 200 ]
-                { src = "/chest_closed.png"
-                , description = ""
-                }
-        }
-
-
-chest orb n =
-    image [ width <| px n ]
-        { src =
-            if orb then
-                "/chest_open_stone.png"
-
-            else
-                "/chest_open_empty.png"
-        , description = ""
-        }
 
 
 viewMobile : Model -> Element Msg
@@ -246,6 +90,12 @@ viewMobile model =
             [ cappedWidth 381
             , height <| px 2198
             , centerX
+            , yellowButton False
+                True
+                (gradientText "Play Game")
+                (Just <| SetView Types.ViewGame)
+                |> el [ centerX, moveDown 100 ]
+                |> inFront
             , [ el [ height <| px 100, width fill ] none
               , image
                     [ height <| px 480

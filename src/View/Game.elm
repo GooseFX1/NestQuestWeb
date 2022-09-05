@@ -6,37 +6,84 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.View exposing (style, whenAttr, whenJust)
-import Maybe.Extra exposing (unwrap)
+import Helpers.View exposing (style, when, whenAttr, whenJust)
+import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, Stake, Tier(..), Wallet)
+import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..), Wallet)
 import View.Shared exposing (..)
 
 
 view : Model -> Element Msg
 view model =
-    [ [ gooseIcon 100
-            |> el [ padding 20, alignLeft ]
+    [ [ gooseIcon
+            (if model.isMobile then
+                55
+
+             else
+                100
+            )
+            |> el
+                [ padding
+                    (if model.isMobile then
+                        10
+
+                     else
+                        20
+                    )
+                , alignLeft
+                ]
       ]
         |> row
             [ width fill
             , Input.button [ centerX, padding 20, hover ]
                 { onPress = Just <| SetView Types.ViewHome
                 , label =
-                    image [ height <| px 90 ]
+                    image
+                        [ height <|
+                            px
+                                (if model.isMobile then
+                                    40
+
+                                 else
+                                    90
+                                )
+
+                        --, paddingXY 0 20
+                        --|> whenAttr model.isMobile
+                        ]
                         { src = "/logo.png", description = "" }
                 }
                 |> inFront
             ]
     , image
         [ centerX
-        , height <| px 800
+        , if model.isMobile then
+            width fill
+
+          else
+            height <| px 800
+
+        --, height <|
+        --px
+        --(if model.isMobile then
+        --381
+        --else
+        --800
+        --)
         , fadeIn
         ]
         { src = "/world-crop.png", description = "" }
         |> el
             [ Border.width 3
-            , width <| px 1220
+
+            --, width <| px 1220
+            , width
+                (if model.isMobile then
+                    fill
+
+                 else
+                    px 1220
+                )
             , centerX
             , Background.color <| rgb255 85 85 147
             , Border.color sand
@@ -49,6 +96,7 @@ view model =
                 |> inFront
                 |> whenAttr (not model.inventoryOpen)
                 |> whenAttr (model.wallet /= Nothing)
+                |> whenAttr (not model.isMobile)
             , connectButton (Ticks.get 0 model.ticks)
                 model.isMobile
                 (Maybe.map .address model.wallet)
@@ -65,7 +113,7 @@ view model =
                 |> inFront
                 |> whenAttr model.inventoryOpen
             , model.selected
-                |> whenJust (viewSelected (Ticks.get 1 model.ticks) False)
+                |> whenJust (viewSelected (Ticks.get 1 model.ticks) model.isMobile)
                 |> inFront
             , Input.button
                 [ centerX
@@ -89,10 +137,47 @@ view model =
                     (model.selected
                         |> unwrap False (.tier >> (==) Tier3)
                     )
+            , viewChests model.ticks model.isMobile model.prizeStatus
+                |> el
+                    [ Background.color sand
+                    , Border.width 3
+                    , Border.color white
+                    , Border.rounded 25
+                    , padding 40
+                    , fadeIn
+                    , Input.button
+                        [ alignTop
+                        , alignRight
+                        , padding 20
+                        , hover
+                        , Font.bold
+                        , Font.size 35
+                        ]
+                        { onPress = Just ToggleTent
+                        , label = text "X"
+                        }
+                        |> inFront
+                    ]
+                |> el
+                    [ padding 50
+                    , centerX
+                    , centerY
+                    ]
+                |> inFront
+                |> whenAttr model.tentOpen
             ]
+    , model.wallet
+        |> whenJust (viewInventory model)
+        --|> el
+        --[ padding 50
+        --, centerX
+        --]
+        |> when model.isMobile
     ]
         |> column
             [ spacing 20
+            , paddingXY 20 0
+                |> whenAttr model.isMobile
             , width fill
             , height fill
             ]
@@ -104,7 +189,16 @@ viewInventory model wallet =
     , [ [ viewGeese wallet
         , viewItems wallet
         ]
-            |> column [ width fill, spacing 20 ]
+            |> column
+                [ width fill
+                , spacing
+                    (if model.isMobile then
+                        40
+
+                     else
+                        20
+                    )
+                ]
       , [ [ gradientText "Incubator"
                 |> el [ centerX, Font.size 22, alignLeft ]
           , horizontalRule
@@ -114,16 +208,38 @@ viewInventory model wallet =
         ]
             |> column [ width <| px 240, spacing 20, alignTop ]
       ]
-        |> row [ width fill, spacing 20 ]
+        |> (if model.isMobile then
+                column [ width fill, spacing 40 ]
+
+            else
+                row [ width fill, spacing 20 ]
+           )
     ]
         |> column [ centerX, fadeIn, width fill, spacing 20 ]
-        |> el [ width <| px 800, height <| px 400 ]
+        |> (if model.isMobile then
+                el [ width fill, height fill ]
+
+            else
+                el [ width <| px 800, height <| px 400 ]
+           )
         |> el
             [ Background.color sand
             , Border.width 3
             , Border.color white
             , Border.rounded 25
-            , padding 40
+            , width fill
+                |> whenAttr model.isMobile
+            , height fill
+                |> whenAttr model.isMobile
+            , scrollbarY
+                |> whenAttr model.isMobile
+            , padding
+                (if model.isMobile then
+                    20
+
+                 else
+                    40
+                )
             , Input.button
                 [ alignTop
                 , alignRight
@@ -136,6 +252,7 @@ viewInventory model wallet =
                 , label = text "X"
                 }
                 |> inFront
+                |> whenAttr (not model.isMobile)
             ]
 
 
@@ -331,20 +448,25 @@ viewSelected inProgress isMobile nft =
                         , spacing 15
                         , width <| px 240
                         ]
+                    |> when (not isMobile)
                 ]
                     |> column [ fadeIn, spacing 0 ]
            )
     ]
         |> column
-            (case nft.tier of
-                Tier1 ->
-                    [ alignRight, moveLeft 190, moveDown 350 ]
+            (if isMobile then
+                [ centerX ]
 
-                Tier2 ->
-                    [ alignRight, moveLeft 295 ]
+             else
+                case nft.tier of
+                    Tier1 ->
+                        [ alignRight, moveLeft 190, moveDown 350 ]
 
-                Tier3 ->
-                    [ alignRight, moveLeft 600, moveDown 370 ]
+                    Tier2 ->
+                        [ alignRight, moveLeft 295 ]
+
+                    Tier3 ->
+                        [ alignRight, moveLeft 600, moveDown 370 ]
             )
 
 
@@ -502,3 +624,132 @@ calcCountdown diff =
 
 horizontalRule =
     el [ width fill, height <| px 1, Background.color black ] none
+
+
+viewChests : Ticks.Ticks -> Bool -> PrizeStatus -> Element Msg
+viewChests ticks isMobile status =
+    let
+        chooser curr =
+            [ gradientText "Try your luck..."
+                |> el [ centerX, Font.size 36 ]
+            , [ List.range 0 3
+                    --|> Debug.log "!"
+                    |> List.map (viewChest curr)
+                    |> row [ spacing 20 ]
+              , List.range 0 2
+                    --|> Debug.log "!"
+                    |> List.map ((+) 4 >> viewChest curr)
+                    |> row [ spacing 20, centerX ]
+              ]
+                |> column [ centerX ]
+            ]
+                |> column
+                    [ spacing 10
+                    ]
+    in
+    case status of
+        ReadyToChoose ->
+            chooser Nothing
+
+        Choosing n ->
+            chooser (Just n)
+
+        WaitUntilTomorrow ->
+            [ chest False 200
+                |> el [ centerX ]
+            , [ gradientText "The wind has not blown in your favour."
+                    |> el [ centerX, Font.size 26 ]
+              , text "Try again tomorrow."
+                    |> el
+                        [ centerX
+                        , Font.italic
+                        , Font.size 23
+                        , Font.color wine
+                        , meriendaBold
+                        ]
+              , yellowButton False
+                    isMobile
+                    (gradientText "Continue")
+                    (Just ToggleTent)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        ClaimYourPrize sig ->
+            [ chest True 200
+                |> el [ centerX ]
+            , [ gradientText "You can claim your reward."
+                    |> el [ centerX, Font.size 26 ]
+              , yellowButton (Ticks.get 1 ticks)
+                    isMobile
+                    (gradientText "Claim")
+                    (Just <| ClaimOrb sig)
+                    |> el [ centerX ]
+              ]
+                |> column [ spacing 20 ]
+            ]
+                |> column [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        Checking ->
+            spinner 50
+                |> el [ centerY, centerX, fadeIn ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+        AlreadyClaimed ->
+            [ image [ width <| px 175 ]
+                { src = "/orb.png"
+                , description = ""
+                }
+                |> el [ centerX ]
+            , gradientText "You have claimed your reward successfully."
+                |> el [ centerX, Font.size 26 ]
+            , yellowButton False
+                isMobile
+                (gradientText "Continue")
+                (Just ToggleTent)
+                |> el [ centerX ]
+            ]
+                |> column [ centerY, centerX, fadeIn, spacing 20 ]
+                |> el [ width <| px 800, height <| px 400 ]
+
+
+viewChest curr n =
+    Input.button
+        [ if isJust curr then
+            fade
+
+          else
+            hover
+        , spinner 30
+            |> el [ centerX, centerY ]
+            |> inFront
+            |> whenAttr (curr == Just n)
+        ]
+        { onPress =
+            if isJust curr then
+                Nothing
+
+            else
+                Just <| SelectChest n
+        , label =
+            image [ width <| px 200 ]
+                { src = "/chest_closed.png"
+                , description = ""
+                }
+        }
+
+
+chest orb n =
+    image [ width <| px n ]
+        { src =
+            if orb then
+                "/chest_open_stone.png"
+
+            else
+                "/chest_open_empty.png"
+        , description = ""
+        }

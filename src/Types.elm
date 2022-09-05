@@ -26,7 +26,7 @@ type alias Model =
 
     -- Spinners:
     -- 0: wallet connect
-    -- 1: NFT stake/withdraw/upgrade
+    -- 1: NFT stake/withdraw/upgrade/claim orb
     , ticks : Ticks
     }
 
