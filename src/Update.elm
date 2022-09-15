@@ -301,15 +301,15 @@ update msg model =
                 , wallet =
                     if Maybe.Extra.isJust sig then
                         model.wallet
-
-                    else
-                        model.wallet
                             |> Maybe.map
                                 (\wallet ->
                                     { wallet
                                         | orbs = wallet.orbs + 1
                                     }
                                 )
+
+                    else
+                        model.wallet
               }
             , Cmd.none
             )
