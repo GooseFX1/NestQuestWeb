@@ -476,7 +476,7 @@ viewGeese wallet =
     , horizontalRule
     , if List.isEmpty wallet.nfts then
         newTabLink [ hover ]
-            { url = "https://app.goosefx.io/NFTs"
+            { url = "https://app.goosefx.io/NFTs/NestQuest"
             , label =
                 [ image
                     [ height <| px 100
