@@ -35,11 +35,11 @@ init flags =
       , nftIndex = 0
       , ticks = Ticks.empty
       , selected = Nothing
-      , tentOpen = False
-      , inventoryOpen = False
       , prizeStatus = Types.ReadyToChoose
       , backendUrl = flags.backendUrl
       , view = Types.ViewHome
+      , modal = Nothing
+      , altarState = Types.AltarStage1
       }
     , Cmd.none
     )

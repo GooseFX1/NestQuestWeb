@@ -1,4 +1,4 @@
-module Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Screen, SignatureData, Stake, Tier(..), View(..), Wallet)
+module Types exposing (AltarState(..), Modal(..), Model, Msg(..), Nft, PrizeStatus(..), Screen, SignatureData, Stake, Tier(..), View(..), Wallet)
 
 import Http
 import Json.Decode
@@ -17,12 +17,12 @@ type alias Model =
     , scrollStart : Int
     , playButtonPulse : Bool
     , nftIndex : Int
-    , selected : Maybe Nft
-    , tentOpen : Bool
+    , selected : Maybe Int
     , prizeStatus : PrizeStatus
     , backendUrl : String
     , view : View
-    , inventoryOpen : Bool
+    , modal : Maybe Modal
+    , altarState : AltarState
 
     -- Spinners:
     -- 0: wallet connect
@@ -50,16 +50,19 @@ type Msg
     | SignTimestamp String
     | SignResponse (Maybe SignatureData)
     | PortFail Json.Decode.Error
-    | UpgradeCb (Result Http.Error (Result String String))
+    | Tier3UpgradeCb (Result Http.Error (Result String String))
+    | Tier4UpgradeCb String (Result Http.Error (Result String ()))
     | StatusCb (Result Http.Error Int)
-    | SelectNft (Maybe Nft)
+    | SelectNft (Maybe Int)
     | ToggleTent
     | ToggleInventory
+    | ToggleAltar
     | SelectChest Int
     | SelectChestCb (Result Http.Error (Result String (Maybe (List Int))))
     | ClaimOrb (List Int)
     | ClaimOrbResponse (Maybe String)
     | SetView View
+    | ProgressAltar
 
 
 type alias Screen =
@@ -105,6 +108,7 @@ type Tier
     = Tier1
     | Tier2
     | Tier3
+    | Tier4
 
 
 type PrizeStatus
@@ -114,3 +118,16 @@ type PrizeStatus
     | WaitUntilTomorrow
     | AlreadyClaimed
     | ClaimYourPrize (List Int)
+
+
+type Modal
+    = ModalInventory
+    | ModalTent
+    | ModalAltar
+
+
+type AltarState
+    = AltarStage1
+    | AltarStage2
+    | AltarSuccess
+    | AltarError String
