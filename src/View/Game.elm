@@ -332,10 +332,7 @@ viewSelected inProgress isMobile nft =
 
                 Tier4 ->
                     ( "Tier 4"
-                    , newTabLink [ hover ]
-                        { url = "https://twitter.com/hashtag/GooseGang"
-                        , label = styledText "#GooseGang"
-                        }
+                    , text "A tremendously fierce armored goose."
                     )
 
         img =
@@ -744,8 +741,8 @@ viewAltar model nft =
                         |> el [ centerX ]
 
                 AltarStage2 ->
-                    [ [ styledText "You approach the altar and the orb in your inventory is sucked out of your pack towards the altar."
-                      , styledText "The orb seems to have a magnetic connection to the altar as it levitates on the center of the pedestal."
+                    [ [ styledText "As you approach the altar, the orb escapes your inventory and levitates towards the altar."
+                      , styledText "The orb seems to have a magnetic connection to the altar as it hovers above center of the pedestal."
                       , styledText "As you approach the orb, the elemental maelstrom within shines ever brighter."
                       ]
                         |> textStack
