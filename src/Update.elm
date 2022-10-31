@@ -10,7 +10,8 @@ import Maybe.Extra exposing (unwrap)
 import Result.Extra exposing (unpack)
 import Ticks
 import Time
-import Types exposing (Model, Msg(..), Tier(..))
+import Types exposing (AltarState(..), Modal(..), Model, Msg(..), Tier(..))
+import View.Shared exposing (findNft)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -214,15 +215,15 @@ update msg model =
         SelectNft nft ->
             ( { model
                 | selected = nft
-                , inventoryOpen = False
+                , modal = Nothing
               }
             , Cmd.none
             )
 
         ToggleTent ->
-            if model.tentOpen then
+            if model.modal == Just ModalTent then
                 ( { model
-                    | tentOpen = False
+                    | modal = Nothing
                   }
                 , Cmd.none
                 )
@@ -231,17 +232,19 @@ update msg model =
                 case model.prizeStatus of
                     Types.ClaimYourPrize _ ->
                         ( { model
-                            | tentOpen = True
+                            | modal = Just ModalTent
                           }
                         , Cmd.none
                         )
 
                     _ ->
-                        model.selected
+                        findNft
+                            model.selected
+                            model.wallet
                             |> unwrap ( model, Cmd.none )
                                 (\nft ->
                                     ( { model
-                                        | tentOpen = True
+                                        | modal = Just ModalTent
                                         , prizeStatus = Types.Checking
                                       }
                                     , getStatus
@@ -251,7 +254,9 @@ update msg model =
                                 )
 
         SelectChest n ->
-            model.selected
+            findNft
+                model.selected
+                model.wallet
                 |> unwrap ( model, Cmd.none )
                     (\nft ->
                         ( { model
@@ -269,7 +274,9 @@ update msg model =
                     model.ticks
                         |> Ticks.tick 1
               }
-            , model.selected
+            , findNft
+                model.selected
+                model.wallet
                 |> unwrap Cmd.none
                     (\nft ->
                         InteropDefinitions.ClaimOrb nft.mintId sig
@@ -315,14 +322,12 @@ update msg model =
             )
 
         SignResponse res ->
-            if model.tentOpen then
+            if model.modal == Just ModalTent then
                 Maybe.map2
                     (\wallet signData ->
                         case model.prizeStatus of
                             Types.Choosing n ->
-                                ( { model
-                                    | tentOpen = model.tentOpen
-                                  }
+                                ( model
                                 , selectChest
                                     model.backendUrl
                                     signData.signature
@@ -346,11 +351,25 @@ update msg model =
             else
                 Maybe.map2
                     (\wallet signData ->
+                        let
+                            tier =
+                                wallet.nfts
+                                    |> List.filter (\nft -> nft.mintId == signData.mintId)
+                                    |> List.head
+                                    |> unwrap Tier1 .tier
+                        in
                         ( model
-                        , upgradeTier2
-                            model.backendUrl
-                            wallet.address
-                            signData
+                        , if tier == Tier2 then
+                            upgradeTier2
+                                model.backendUrl
+                                wallet.address
+                                signData
+
+                          else
+                            upgradeTier3
+                                model.backendUrl
+                                wallet.address
+                                signData
                         )
                     )
                     model.wallet
@@ -364,7 +383,7 @@ update msg model =
                         , Cmd.none
                         )
 
-        UpgradeCb res ->
+        Tier3UpgradeCb res ->
             let
                 ticks =
                     model.ticks
@@ -416,11 +435,62 @@ update msg model =
                         )
                     )
 
+        Tier4UpgradeCb mintId res ->
+            let
+                ticks =
+                    model.ticks
+                        |> Ticks.untick 1
+            in
+            res
+                |> unpack
+                    (\err ->
+                        ( { model | ticks = ticks }
+                        , [ InteropDefinitions.Log (parseError err)
+                                |> InteropPorts.fromElm
+                          , InteropDefinitions.Alert "There was a problem."
+                                |> InteropPorts.fromElm
+                          ]
+                            |> Cmd.batch
+                        )
+                    )
+                    (unpack
+                        (\err ->
+                            ( { model | ticks = ticks, altarState = AltarError err }
+                            , Cmd.none
+                            )
+                        )
+                        (\_ ->
+                            ( { model
+                                | ticks = ticks
+                                , altarState = AltarSuccess
+                                , wallet =
+                                    model.wallet
+                                        |> Maybe.map
+                                            (\wallet ->
+                                                { wallet
+                                                    | nfts =
+                                                        wallet.nfts
+                                                            |> List.map
+                                                                (\nft ->
+                                                                    if nft.mintId == mintId then
+                                                                        { nft | tier = Types.Tier4 }
+
+                                                                    else
+                                                                        nft
+                                                                )
+                                                }
+                                            )
+                              }
+                            , Cmd.none
+                            )
+                        )
+                    )
+
         StatusCb res ->
             res
                 |> unpack
                     (\err ->
-                        ( { model | tentOpen = False }
+                        ( { model | modal = Nothing }
                         , [ InteropDefinitions.Log (parseError err)
                                 |> InteropPorts.fromElm
                           , InteropDefinitions.Alert "There was a problem."
@@ -490,11 +560,34 @@ update msg model =
 
         ToggleInventory ->
             ( { model
-                | inventoryOpen = not model.inventoryOpen
+                | modal =
+                    if model.modal == Nothing then
+                        Just ModalInventory
+
+                    else
+                        Nothing
                 , selected = Nothing
               }
             , Cmd.none
             )
+
+        ToggleAltar ->
+            ( if model.modal == Nothing then
+                { model
+                    | modal =
+                        Just ModalAltar
+                    , altarState = AltarStage1
+                }
+
+              else
+                { model
+                    | modal = Nothing
+                }
+            , Cmd.none
+            )
+
+        ProgressAltar ->
+            ( { model | altarState = AltarStage2 }, Cmd.none )
 
         PlayTheme ->
             if model.themePlaying then
@@ -640,7 +733,7 @@ upgradeTier2 base address data =
                 |> JE.object
                 |> Http.jsonBody
         , expect =
-            Http.expectJson UpgradeCb
+            Http.expectJson Tier3UpgradeCb
                 (JD.map2
                     (\status msg ->
                         if status == "ok" then
@@ -651,6 +744,36 @@ upgradeTier2 base address data =
                     )
                     (JD.field "status" JD.string)
                     (JD.field "message" JD.string)
+                )
+        }
+
+
+upgradeTier3 : String -> String -> Types.SignatureData -> Cmd Msg
+upgradeTier3 base address data =
+    Http.post
+        { url = base ++ "/tier4"
+        , body =
+            [ ( "address", JE.string address )
+            , ( "mint_id", JE.string data.mintId )
+            , ( "signature", JE.string data.signature )
+            ]
+                |> JE.object
+                |> Http.jsonBody
+        , expect =
+            Http.expectJson (Tier4UpgradeCb data.mintId)
+                (JD.map2
+                    (\status msg ->
+                        if status == "ok" then
+                            --Ok msg
+                            Err msg
+
+                        else
+                            Err msg
+                    )
+                    (JD.field "status" JD.string)
+                    (JD.field "message" JD.string)
+                    |> JD.nullable
+                    |> JD.map (Maybe.withDefault (Ok ()))
                 )
         }
 

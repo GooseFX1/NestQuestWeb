@@ -1,4 +1,4 @@
-module View.Shared exposing (..)
+module View.Shared exposing (bg, black, brown, connectButton, fade, fadeIn, findNft, formatAddress, formatInt, gold, gooseIcon, gradientText, gradientTextHelper, hover, meriendaBold, meriendaRegular, sand, spin, spinner, white, wine, yellowButton, yellowButtonExpand)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -45,6 +45,16 @@ spinner n =
         |> el [ spin ]
 
 
+yellowButtonExpand : Bool -> Element msg -> Maybe msg -> Element msg
+yellowButtonExpand inProgress elem msg =
+    yellowButtonHelper inProgress
+        elem
+        msg
+        [ height <| px 58
+        , paddingXY 20 0
+        ]
+
+
 yellowButton : Bool -> Bool -> Element msg -> Maybe msg -> Element msg
 yellowButton inProgress isMobile elem msg =
     let
@@ -62,35 +72,45 @@ yellowButton inProgress isMobile elem msg =
             else
                 22
     in
-    Input.button
+    yellowButtonHelper inProgress
+        (elem
+            |> el [ centerX ]
+        )
+        msg
         [ height <| px 58
         , width <| px w
-        , Border.width 3
-        , Border.color wine
-        , Border.rounded 30
-        , Background.color sand
         , Font.size fnt
-        , if isJust msg then
-            hover
-
-          else
-            fade
-        , spinner 20
-            |> el [ alignRight, paddingXY 5 0, centerY ]
-            |> inFront
-            |> whenAttr inProgress
-        , style "cursor" "wait"
-            |> whenAttr inProgress
         ]
+
+
+yellowButtonHelper : Bool -> Element msg -> Maybe msg -> List (Attribute msg) -> Element msg
+yellowButtonHelper inProgress elem msg attrs =
+    Input.button
+        (attrs
+            ++ [ Border.width 3
+               , Border.color wine
+               , Border.rounded 30
+               , Background.color sand
+               , if isJust msg then
+                    hover
+
+                 else
+                    fade
+               , spinner 20
+                    |> el [ alignRight, paddingXY 5 0, centerY ]
+                    |> inFront
+                    |> whenAttr inProgress
+               , style "cursor" "wait"
+                    |> whenAttr inProgress
+               ]
+        )
         { onPress =
             if inProgress then
                 Nothing
 
             else
                 msg
-        , label =
-            elem
-                |> el [ centerX ]
+        , label = elem
         }
 
 
@@ -151,9 +171,19 @@ connectButton inProgress isMobile addr dropdown =
         |> column [ spacing 10 ]
 
 
-nullByte : Char
-nullByte =
-    '\u{0000}'
+findNft : Maybe Int -> Maybe Types.Wallet -> Maybe Types.Nft
+findNft a b =
+    Maybe.map2
+        (\selected ->
+            .nfts
+                >> List.filter
+                    (\nft ->
+                        nft.id == selected
+                    )
+        )
+        a
+        b
+        |> Maybe.andThen List.head
 
 
 formatInt : Int -> String

@@ -204,8 +204,11 @@ decodeTier =
                     2 ->
                         Types.Tier2
 
-                    _ ->
+                    3 ->
                         Types.Tier3
+
+                    _ ->
+                        Types.Tier4
             )
 
 

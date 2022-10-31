@@ -9,7 +9,7 @@ import Element.Input as Input
 import Helpers.View exposing (style, when, whenAttr, whenJust)
 import Maybe.Extra exposing (isJust, unwrap)
 import Ticks
-import Types exposing (Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..), Wallet)
+import Types exposing (AltarState(..), Modal(..), Model, Msg(..), Nft, PrizeStatus(..), Stake, Tier(..), Wallet)
 import View.Shared exposing (..)
 
 
@@ -47,9 +47,6 @@ view model =
                                  else
                                     90
                                 )
-
-                        --, paddingXY 0 20
-                        --|> whenAttr model.isMobile
                         ]
                         { src = "/logo.png", description = "" }
                 }
@@ -62,21 +59,11 @@ view model =
 
           else
             height <| px 800
-
-        --, height <|
-        --px
-        --(if model.isMobile then
-        --381
-        --else
-        --800
-        --)
         , fadeIn
         ]
         { src = "/world-crop.png", description = "" }
         |> el
             [ Border.width 3
-
-            --, width <| px 1220
             , width
                 (if model.isMobile then
                     fill
@@ -94,7 +81,7 @@ view model =
                 (Just ToggleInventory)
                 |> el [ alignLeft, alignBottom, padding 10 ]
                 |> inFront
-                |> whenAttr (not model.inventoryOpen)
+                |> whenAttr (model.modal == Nothing)
                 |> whenAttr (model.wallet /= Nothing)
                 |> whenAttr (not model.isMobile)
             , connectButton (Ticks.get 0 model.ticks)
@@ -104,15 +91,9 @@ view model =
                 |> el [ centerX, centerY ]
                 |> inFront
                 |> whenAttr (model.wallet == Nothing)
-            , model.wallet
-                |> whenJust (viewInventory model)
-                |> el
-                    [ padding 50
-                    , centerX
-                    ]
-                |> inFront
-                |> whenAttr model.inventoryOpen
-            , model.selected
+            , findNft
+                model.selected
+                model.wallet
                 |> whenJust (viewSelected (Ticks.get 1 model.ticks) model.isMobile)
                 |> inFront
             , Input.button
@@ -134,44 +115,45 @@ view model =
                 }
                 |> inFront
                 |> whenAttr
-                    (model.selected
+                    (findNft
+                        model.selected
+                        model.wallet
                         |> unwrap False (.tier >> (==) Tier3)
                     )
-            , viewChests model.ticks model.isMobile model.prizeStatus
-                |> el
-                    [ Background.color sand
-                    , Border.width 3
-                    , Border.color white
-                    , Border.rounded 25
-                    , padding 40
-                    , fadeIn
-                    , Input.button
-                        [ alignTop
-                        , alignRight
-                        , padding 20
-                        , hover
-                        , Font.bold
-                        , Font.size 35
+            , Input.button
+                [ centerX
+                , moveDown 390
+                , moveLeft 240
+                , style "animation" "bob 1.5s infinite ease"
+                , hover
+                ]
+                { onPress = Just ToggleAltar
+                , label =
+                    image
+                        [ height <| px 60
+                        , width <| px 60
                         ]
-                        { onPress = Just ToggleTent
-                        , label = text "X"
+                        { src = "/shimmer.png"
+                        , description = ""
                         }
-                        |> inFront
-                    ]
-                |> el
-                    [ padding 50
-                    , centerX
-                    , centerY
-                    ]
+                }
                 |> inFront
-                |> whenAttr model.tentOpen
+                |> whenAttr
+                    ((findNft
+                        model.selected
+                        model.wallet
+                        |> unwrap False (.tier >> (==) Tier3)
+                     )
+                        && (model.wallet
+                                |> unwrap False (.orbs >> (<) 0)
+                           )
+                    )
+            , model.modal
+                |> whenJust (viewModal model)
+                |> inFront
             ]
     , model.wallet
         |> whenJust (viewInventory model)
-        --|> el
-        --[ padding 50
-        --, centerX
-        --]
         |> when model.isMobile
     ]
         |> column
@@ -320,26 +302,53 @@ withdrawButton inProgress isMobile time stake =
 
 viewSelected : Bool -> Bool -> Nft -> Element Msg
 viewSelected inProgress isMobile nft =
-    [ image
-        [ height <|
-            px
-                (if isMobile then
-                    120
+    let
+        ( header, content ) =
+            case nft.tier of
+                Tier1 ->
+                    ( "Tier 1"
+                    , text "This egg will need to be staked for 30 days to upgrade."
+                    )
 
-                 else
-                    203
-                )
-        , centerX
-        , nft.name
-            |> String.filter ((/=) nullByte)
-            |> String.split "#"
-            |> List.reverse
-            |> List.head
-            |> Maybe.andThen String.toInt
-            |> whenJust
-                (formatInt
-                    >> text
-                    >> el
+                Tier2 ->
+                    ( "Tier 2"
+                    , [ text "You will need to "
+                      , newTabLink [ Font.underline, hover, Font.bold ]
+                            { url = "https://app.goosefx.io/farm"
+                            , label = text "stake 25 GOFX"
+                            }
+                      , text " with this wallet for "
+                      , text "7 days"
+                            |> el [ Font.bold ]
+                      , text " before upgrading this NFT."
+                      ]
+                        |> paragraph []
+                    )
+
+                Tier3 ->
+                    ( "Tier 3"
+                    , text "Acquire an orb, and find the altar to continue your journey."
+                    )
+
+                Tier4 ->
+                    ( "Tier 4"
+                    , text "A tremendously fierce armored goose."
+                    )
+
+        img =
+            image
+                [ height <|
+                    px
+                        (if isMobile then
+                            120
+
+                         else
+                            203
+                        )
+                , centerX
+                , formatInt nft.id
+                    |> text
+                    |> el
                         [ Font.color white
                         , centerX
                         , Font.size
@@ -359,101 +368,62 @@ viewSelected inProgress isMobile nft =
                             )
                         , Font.bold
                         ]
+                    |> inFront
+                ]
+                { src = nftImage nft.tier
+                , description = ""
+                }
+    in
+    [ img
+    , (case nft.tier of
+        Tier1 ->
+            Just
+                ( "Incubate Egg"
+                , Incubate nft.mintId
                 )
-            |> inFront
-        ]
-        { src =
-            case nft.tier of
-                Tier1 ->
-                    "/egg-present.png"
 
-                Tier2 ->
-                    "/tier2.png"
+        Tier2 ->
+            Just
+                ( "Upgrade"
+                , SignTimestamp nft.mintId
+                )
 
-                Tier3 ->
-                    "/tier3.png"
-        , description = ""
-        }
-        |> (\x ->
-                let
-                    ( hd, content ) =
-                        case nft.tier of
-                            Tier1 ->
-                                ( "Tier 1"
-                                , text "This egg will need to be staked for 30 days to upgrade."
-                                )
+        Tier3 ->
+            Nothing
 
-                            Tier2 ->
-                                ( "Tier 2"
-                                , [ text "You will need to "
-                                  , newTabLink [ Font.underline, hover, Font.bold ]
-                                        { url = "https://app.goosefx.io/farm"
-                                        , label = text "stake 25 GOFX"
-                                        }
-                                  , text " with this wallet for "
-                                  , text "7 days"
-                                        |> el [ Font.bold ]
-                                  , text " before upgrading this NFT."
-                                  ]
-                                    |> paragraph []
-                                )
-
-                            Tier3 ->
-                                ( "Tier 3"
-                                , text "Your Gosling is growing stronger."
-                                )
-                in
-                [ Input.button [ hover, fadeIn ]
-                    { onPress = Just <| SelectNft Nothing
-                    , label = x
-                    }
-                , yellowButton inProgress
+        Tier4 ->
+            Nothing
+      )
+        |> whenJust
+            (\( txt, msg ) ->
+                yellowButton inProgress
                     isMobile
                     (gradientText
-                        (case nft.tier of
-                            Tier1 ->
-                                "Incubate Egg"
-
-                            Tier2 ->
-                                "Upgrade"
-
-                            Tier3 ->
-                                "..."
-                        )
+                        txt
                     )
-                    (case nft.tier of
-                        Tier1 ->
-                            Just <| Incubate nft.mintId
-
-                        Tier2 ->
-                            Just <| SignTimestamp nft.mintId
-
-                        Tier3 ->
-                            Nothing
-                    )
+                    (Just msg)
                     |> el [ centerX ]
-                , [ gradientText hd
-                        |> el [ centerX, Font.size 22 ]
-                  , [ content ]
-                        |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
-                  ]
-                    |> column
-                        [ Background.color sand
-                        , Border.width 3
-                        , Border.color white
-                        , Border.rounded 25
-                        , padding 15
-                        , moveDown 10
-                        , centerX
-                        , spacing 15
-                        , width <| px 240
-                        ]
-                    |> when (not isMobile)
-                ]
-                    |> column [ fadeIn, spacing 0 ]
-           )
-    ]
+            )
+    , [ gradientText header
+            |> el [ centerX, Font.size 22 ]
+      , [ content ]
+            |> paragraph [ meriendaRegular, Font.italic, Font.color brown, Font.center, Font.size 17 ]
+      ]
         |> column
+            [ Background.color sand
+            , Border.width 3
+            , Border.color white
+            , Border.rounded 25
+            , padding 15
+            , moveDown 10
+            , centerX
+            , spacing 15
+            , width <| px 240
+            ]
+        |> when (not isMobile)
+    ]
+        |> column [ fadeIn, spacing 0 ]
+        |> el
             (if isMobile then
                 [ centerX ]
 
@@ -466,7 +436,10 @@ viewSelected inProgress isMobile nft =
                         [ alignRight, moveLeft 295 ]
 
                     Tier3 ->
-                        [ alignRight, moveLeft 600, moveDown 370 ]
+                        [ alignRight, moveLeft 555, moveDown 370 ]
+
+                    Tier4 ->
+                        [ alignLeft, moveRight 130, moveDown 120 ]
             )
 
 
@@ -476,7 +449,7 @@ viewGeese wallet =
     , horizontalRule
     , if List.isEmpty wallet.nfts then
         newTabLink [ hover ]
-            { url = "https://app.goosefx.io/NFTs"
+            { url = "https://app.goosefx.io/NFTs/NestQuest"
             , label =
                 [ image
                     [ height <| px 100
@@ -501,21 +474,12 @@ viewGeese wallet =
             |> List.map
                 (\nft ->
                     [ Input.button [ hover ]
-                        { onPress = Just <| SelectNft <| Just nft
+                        { onPress = Just <| SelectNft <| Just nft.id
                         , label =
                             image
                                 [ height <| px 100
                                 ]
-                                { src =
-                                    case nft.tier of
-                                        Types.Tier1 ->
-                                            "/egg-present.png"
-
-                                        Types.Tier2 ->
-                                            "/tier2.png"
-
-                                        Types.Tier3 ->
-                                            "/tier3.png"
+                                { src = nftImage nft.tier
                                 , description = ""
                                 }
                         }
@@ -532,10 +496,6 @@ viewGeese wallet =
                     ]
                         |> column [ spacing 10 ]
                 )
-            --|> row [ width fill, scrollbarX, height <| px 160 ]
-            --|> row [ width fill, height fill ]
-            --|> List.singleton
-            --|> el [ width fill, scrollbarX, height <| px 160 ]
             |> wrappedRow [ width fill, scrollbarY, height <| px 160 ]
     ]
         |> column [ width fill ]
@@ -633,11 +593,9 @@ viewChests ticks isMobile status =
             [ gradientText "Try your luck..."
                 |> el [ centerX, Font.size 36 ]
             , [ List.range 0 3
-                    --|> Debug.log "!"
                     |> List.map (viewChest curr)
                     |> row [ spacing 20 ]
               , List.range 0 2
-                    --|> Debug.log "!"
                     |> List.map ((+) 4 >> viewChest curr)
                     |> row [ spacing 20, centerX ]
               ]
@@ -743,6 +701,101 @@ viewChest curr n =
         }
 
 
+viewAltar : Model -> Nft -> Element Msg
+viewAltar model nft =
+    image [ width <| px 600 ]
+        { src = "/altar.jpg"
+        , description = ""
+        }
+        |> el
+            [ Background.color sand
+            , Border.width 3
+            , Border.color sand
+            , Border.rounded 25
+            , clip
+            , fadeIn
+            , Input.button
+                [ alignTop
+                , alignRight
+                , width <| px 45
+                , height <| px 45
+                , hover
+                , Font.bold
+                , Font.size 35
+                , Background.color sand
+                , Border.rounded 30
+                , moveLeft 10
+                , moveDown 10
+                ]
+                { onPress = Just ToggleAltar
+                , label =
+                    text "X"
+                        |> el [ centerX, centerY ]
+                }
+                |> inFront
+            , (case model.altarState of
+                AltarStage1 ->
+                    yellowButtonExpand False
+                        (styledText "Investigate the Altar")
+                        (Just ProgressAltar)
+                        |> el [ centerX ]
+
+                AltarStage2 ->
+                    [ [ styledText "As you approach the altar, the orb escapes your inventory and levitates towards the altar."
+                      , styledText "The orb seems to have a magnetic connection to the altar as it hovers above center of the pedestal."
+                      , styledText "As you approach the orb, the elemental maelstrom within shines ever brighter."
+                      ]
+                        |> textStack
+                    , yellowButton (Ticks.get 1 model.ticks)
+                        True
+                        (styledText "Touch orb")
+                        (Just (SignTimestamp nft.mintId))
+                        |> el [ centerX ]
+                    ]
+                        |> column [ spacing 20, fadeIn ]
+
+                AltarSuccess ->
+                    [ [ image
+                            [ width <| px 150
+                            , centerX
+                            ]
+                            { src = "/tier4.png"
+                            , description = ""
+                            }
+                      , styledText "Your Gosling has absorbed the elemental energy from within the orb and has evolved to an Armored Goose."
+                      , styledText "This Goose is dangerous and prepared for the challenges that await it on the journey ahead."
+                      ]
+                        |> textStack
+                    , yellowButton False
+                        True
+                        (styledText "Continue")
+                        (Just ToggleAltar)
+                        |> el [ centerX ]
+                    ]
+                        |> column [ spacing 20 ]
+
+                AltarError err ->
+                    [ styledText "Error"
+                        |> el [ centerX ]
+                    , styledText err
+                        |> el [ centerX ]
+                    , yellowButton False
+                        True
+                        (styledText "Continue")
+                        (Just ToggleAltar)
+                        |> el [ centerX ]
+                    ]
+                        |> textStack
+              )
+                |> el [ padding 20, centerX, alignBottom ]
+                |> inFront
+            ]
+        |> el
+            [ padding 50
+            , centerX
+            ]
+
+
 chest orb n =
     image [ width <| px n ]
         { src =
@@ -753,3 +806,89 @@ chest orb n =
                 "/chest_open_empty.png"
         , description = ""
         }
+
+
+styledText =
+    text
+        >> List.singleton
+        >> paragraph
+            [ meriendaRegular
+            , Font.italic
+            , Font.color brown
+            , Font.size 20
+            ]
+
+
+viewModal : Model -> Modal -> Element Msg
+viewModal model modal =
+    case modal of
+        ModalTent ->
+            viewChests model.ticks model.isMobile model.prizeStatus
+                |> el
+                    [ Background.color sand
+                    , Border.width 3
+                    , Border.color white
+                    , Border.rounded 25
+                    , padding 40
+                    , fadeIn
+                    , Input.button
+                        [ alignTop
+                        , alignRight
+                        , padding 20
+                        , hover
+                        , Font.bold
+                        , Font.size 35
+                        ]
+                        { onPress = Just ToggleTent
+                        , label = text "X"
+                        }
+                        |> inFront
+                    ]
+                |> el
+                    [ padding 50
+                    , centerX
+                    , centerY
+                    ]
+
+        ModalAltar ->
+            findNft
+                model.selected
+                model.wallet
+                |> whenJust
+                    (viewAltar model)
+
+        ModalInventory ->
+            model.wallet
+                |> whenJust (viewInventory model)
+                |> el
+                    [ padding 50
+                    , centerX
+                    ]
+
+
+textStack =
+    column
+        [ Background.color sand
+        , Border.rounded 30
+        , Border.width 3
+        , Border.color white
+        , padding 20
+        , Font.size 15
+        , spacing 10
+        , Font.center
+        ]
+
+
+nftImage tier =
+    case tier of
+        Types.Tier1 ->
+            "/egg-present.png"
+
+        Types.Tier2 ->
+            "/tier2.png"
+
+        Types.Tier3 ->
+            "/tier3.png"
+
+        Types.Tier4 ->
+            "/tier4.png"

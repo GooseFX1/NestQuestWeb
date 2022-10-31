@@ -39,6 +39,7 @@ interface Nft {
 
 const Offchain = z.object({
   description: z.string(),
+  attributes: z.array(z.object({ trait_type: z.string(), value: z.string() })),
 });
 
 const isNotNull = <T>(item: T | null): item is T => item !== null;
@@ -353,14 +354,21 @@ const parseNft = async (metadata: Metadata): Promise<Nft> => {
   const res = await fetch(metadata.data.uri, { cache: "no-store" });
   const json = await res.json();
   const offchain = Offchain.parse(json);
+  const tierAttribute = offchain.attributes.find(
+    (attr) => attr.trait_type === "Tier"
+  );
+  const tier =
+    tierAttribute === undefined
+      ? offchain.description.includes("stronger Gosling")
+        ? 3
+        : offchain.description.includes("hatchling has emerged")
+        ? 2
+        : 1
+      : Number(tierAttribute.value);
   return {
     mintId: metadata.mint.toString(),
     name: metadata.data.name,
-    tier: offchain.description.includes("stronger Gosling")
-      ? 3
-      : offchain.description.includes("hatchling has emerged")
-      ? 2
-      : 1,
+    tier,
   };
 };
 
