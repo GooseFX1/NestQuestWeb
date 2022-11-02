@@ -39,7 +39,9 @@ interface Nft {
 
 const Offchain = z.object({
   description: z.string(),
-  attributes: z.array(z.object({ trait_type: z.string(), value: z.string() })),
+  attributes: z
+    .array(z.object({ trait_type: z.string(), value: z.string() }))
+    .default([]),
 });
 
 const isNotNull = <T>(item: T | null): item is T => item !== null;
