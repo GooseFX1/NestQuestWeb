@@ -68,6 +68,13 @@ viewMobile model =
         , musicButton model.playButtonPulse model.themePlaying
         ]
             |> row [ spaceEvenly, cappedWidth 450, centerX, padding 20 ]
+        , [ text "GM! - After a successful launch of our platform tutorial, we have decided to deprecate the Nestquest game. This means that as of November of 2023, we will no longer release updates, and support for Nestquest. We want to express our sincere gratitude for your participation in one of the first programmable NFT games on Solana. Your engagement has been invaluable. Please visit "
+          , newTabLink [ hover, Font.underline ]
+            { url = "https://www.goosefx.io"
+            , label = text "goosefx.io"
+            }
+      , text " for more." ]
+            |> paragraph [ Background.color sand, Font.color brown, Font.size 18, meriendaBold, width fill, padding 42, moveDown 20 ]
       , [ [ image
                 [ centerX
                 , width fill
@@ -103,7 +110,7 @@ viewMobile model =
                     , centerX
                     , infoText
                         |> column
-                            [ Font.color wine
+                            [ Font.color gold
                             , Font.center
                             , meriendaBold
                             , spacing 5
@@ -190,9 +197,18 @@ viewDesktop : Model -> Element Msg
 viewDesktop model =
     [ [ gooseIcon 100
             |> el [ padding 20 ]
+    , [ text "GM! - After a successful launch of our platform tutorial, we have decided to deprecate the Nestquest game. This means that as of November of 2023, we will no longer release updates, and support for Nestquest. We want to express our sincere gratitude for your participation in one of the first programmable NFT games on Solana. Your engagement has been invaluable. Please visit "
+          , newTabLink [ hover, Font.underline ]
+            { url = "https://www.goosefx.io"
+            , label = text "goosefx.io"
+            }
+
+    , text " for more." ]
+            |> paragraph [ Background.color sand, Font.color brown, Font.size 22, meriendaBold, width fill, padding 42, moveDown 20 ]
       , [ image
             [ centerX
-            , width <| px 550
+            , width <| px 350
+            , moveDown 40
             , fadeIn
             ]
             { src = "/logo.png", description = "" }
@@ -230,7 +246,7 @@ viewDesktop model =
                         }
                   , infoText
                         |> column
-                            [ Font.color wine
+                            [ Font.color gold
                             , Font.center
                             , cappedWidth 855
                             , centerX
@@ -667,7 +683,7 @@ walletPill n isMobile =
         { onPress = Just <| ConnectWallet n
         , label =
             [ text name
-                |> el [ Font.color white, meriendaRegular, Font.size 27 ]
+                |> el [ Font.color gold, meriendaRegular, Font.size 27 ]
             , image
                 [ height <| px 30, width <| px 30 ]
                 { src = img, description = "" }
@@ -711,7 +727,7 @@ viewStats isMobile =
                 ]
     in
     [ [ gradientText "Total Minted NFTs"
-      , text "12,366 / 25,000" |> el [ meriendaBold, Font.color brown, centerX ]
+      , text "12,366 / 25,000" |> el [ meriendaBold, Font.color gold, centerX ]
       ]
         |> col
         |> el
@@ -725,7 +741,7 @@ viewStats isMobile =
             ]
     , [ gradientText "NFTs In-Play"
             |> el [ centerX ]
-      , text "1,167 / 12,366" |> el [ meriendaBold, Font.color brown, centerX ]
+      , text "1,167 / 12,366" |> el [ meriendaBold, Font.color gold, centerX ]
       ]
         |> col
     ]
@@ -764,12 +780,12 @@ viewFooter =
             |> el [ centerX, Font.size 24 ]
       , viewSocials
             |> el [ centerX ]
-      , text "Copyright © 2022 Goose Labs, Inc. All rights reserved."
+      , text "Copyright © 2023 Goose Labs, Inc. All rights reserved."
             |> el
                 [ centerX
                 , meriendaRegular
                 , Font.size 11
-                , Font.color white
+                , Font.color gold
                 ]
       ]
         |> column [ spacing 20, centerX, padding 30 ]

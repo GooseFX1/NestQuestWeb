@@ -23,7 +23,7 @@ gooseIcon n =
             image
                 [ width <| px n
                 ]
-                { src = "/brand.svg", description = "" }
+                { src = "https://media.goosefx.io/logos/GooseFX-dark.svg", description = "" }
         }
 
 
